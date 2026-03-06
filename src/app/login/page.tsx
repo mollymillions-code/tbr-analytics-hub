@@ -41,7 +41,7 @@ function LoginContent() {
 
   return (
     <div className="min-h-screen flex items-center justify-center">
-      <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-2xl p-10 max-w-md w-full text-center">
+      <div className="bg-white border border-[#D0D5DD] rounded-2xl p-10 max-w-md w-full text-center shadow-lg">
         <img src="/tbr-logo.svg" alt="TBR" className="w-20 h-20 mx-auto mb-6" />
         <h1 className="font-display text-2xl font-bold tracking-wider mb-2">TBR ANALYTICS HUB</h1>
         <p className="text-[var(--text-secondary)] text-sm mb-8">
@@ -80,7 +80,7 @@ function LoginContent() {
             onChange={(e) => setEmail(e.target.value)}
             placeholder="your.name@teambluerising.com"
             required
-            className="w-full px-4 py-3 bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-lg text-[var(--text-primary)] text-sm placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[var(--accent-cyan)] transition-colors"
+            className="w-full px-4 py-3 bg-[#F5F6FA] border border-[#B8BEC9] rounded-lg text-[var(--text-primary)] text-sm placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[var(--accent-cyan)] transition-colors"
           />
           <button
             type="submit"

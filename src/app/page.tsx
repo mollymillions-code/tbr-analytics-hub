@@ -70,7 +70,7 @@ export default function Home() {
               className={`px-5 py-3 rounded-lg font-semibold text-sm uppercase tracking-wider border-2 transition-all cursor-pointer ${
                 selectedSeason === season
                   ? "bg-[var(--accent-cyan)] border-[var(--accent-cyan)] text-white"
-                  : "bg-[var(--bg-card)] border-[var(--border-color)] text-[var(--text-secondary)] hover:border-[var(--accent-cyan)] hover:text-[var(--accent-cyan)]"
+                  : "bg-white border-[#B8BEC9] text-[#3D4A5C] hover:border-[var(--accent-cyan)] hover:text-[var(--accent-cyan)]"
               }`}
             >
               {season}
@@ -85,7 +85,7 @@ export default function Home() {
             <h2 className="font-display text-lg font-bold tracking-wider text-[var(--accent-cyan)]">
               {selectedSeason.toUpperCase()}
             </h2>
-            <span className="text-xs text-[var(--text-muted)] bg-[var(--bg-card)] px-3 py-1 rounded-full border border-[var(--border-color)]">
+            <span className="text-xs text-[var(--text-secondary)] bg-white px-3 py-1 rounded-full border border-[#B8BEC9]">
               {Object.keys(data.seasons[selectedSeason].races).length} ROUNDS
             </span>
           </div>
@@ -110,7 +110,7 @@ export default function Home() {
                 <Link
                   key={raceName}
                   href={`/race/${encodeURIComponent(selectedSeason)}/${encodeURIComponent(raceName)}`}
-                  className="race-card block bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl overflow-hidden"
+                  className="race-card block bg-white border border-[#D0D5DD] rounded-xl overflow-hidden"
                 >
                   <div className="h-1 bg-gradient-to-r from-[var(--accent-cyan)] to-[var(--accent-green)]" />
                   <div className="p-5">

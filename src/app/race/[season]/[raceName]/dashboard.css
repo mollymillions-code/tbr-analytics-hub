@@ -201,10 +201,10 @@
     font-size: 0.9rem;
     font-weight: 600;
     padding: 12px 20px;
-    background: var(--jd-bg-table-header);
-    border: 2px solid var(--jd-border-color);
+    background: #ffffff;
+    border: 2px solid #B8BEC9;
     border-radius: 8px;
-    color: var(--jd-text-secondary);
+    color: #3D4A5C;
     cursor: pointer;
     text-transform: uppercase;
     letter-spacing: 1px;
@@ -215,19 +215,20 @@
 .jd-nav-tab:hover {
     color: var(--jd-accent-cyan);
     border-color: var(--jd-accent-cyan);
-    background: rgba(0, 212, 255, 0.1);
+    background: rgba(0, 85, 212, 0.06);
     transform: translateY(-2px);
 }
 
 .jd-nav-tab.summary-tab {
     border-color: var(--jd-accent-cyan);
     color: var(--jd-accent-cyan);
+    background: rgba(0, 85, 212, 0.04);
 }
 
 .jd-nav-tab.active {
     color: #fff !important;
-    background-color: #0088cc !important;
-    border-color: #0088cc !important;
+    background-color: #0055D4 !important;
+    border-color: #0055D4 !important;
 }
 
 .dark-mode .jd-nav-tab {
@@ -748,10 +749,10 @@
     font-size: 0.85rem;
     font-weight: 600;
     padding: 8px 16px;
-    background: var(--jd-bg-table-header);
-    border: 1px solid var(--jd-border-color);
+    background: #ffffff;
+    border: 1px solid #B8BEC9;
     border-radius: 5px;
-    color: var(--jd-text-secondary);
+    color: #3D4A5C;
     cursor: pointer;
     transition: all 0.2s ease;
 }
@@ -762,12 +763,10 @@
 }
 
 .jd-toggle-btn.active {
-    background: #0088cc;
-    border-color: #0088cc;
+    background: #0055D4;
+    border-color: #0055D4;
     color: #fff;
 }
-
-/* toggle btn uses base variables */
 
 /* Gains Table */
 .jd-gains-table {
