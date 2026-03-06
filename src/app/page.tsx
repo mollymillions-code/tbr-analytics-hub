@@ -57,6 +57,44 @@ export default function Home() {
 
   return (
     <div>
+      {/* Canvas AI Feature Banner */}
+      <Link
+        href="/canvas"
+        className="group relative block mb-8 rounded-2xl overflow-hidden border border-[rgba(0,85,212,0.15)] hover:border-[rgba(0,85,212,0.4)] transition-all duration-300"
+      >
+        <div className="absolute inset-0 bg-gradient-to-r from-[#0A1628] via-[#0D2847] to-[#0A1628]" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_70%_50%,rgba(0,85,212,0.15),transparent_70%)]" />
+        <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[var(--accent-cyan)] to-transparent opacity-60" />
+        <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[var(--accent-cyan)] to-transparent opacity-30" />
+        <div className="relative flex items-center justify-between px-7 py-5">
+          <div className="flex items-center gap-5">
+            <div className="flex items-center justify-center w-11 h-11 rounded-xl bg-[rgba(0,85,212,0.15)] border border-[rgba(0,85,212,0.25)] group-hover:bg-[rgba(0,85,212,0.25)] transition-colors">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#4D9BFF" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 2L2 7l10 5 10-5-10-5z" />
+                <path d="M2 17l10 5 10-5" />
+                <path d="M2 12l10 5 10-5" />
+              </svg>
+            </div>
+            <div>
+              <div className="flex items-center gap-2.5">
+                <span className="font-display text-sm font-bold tracking-wider text-white">AI CANVAS</span>
+                <span className="text-[9px] font-bold tracking-widest uppercase px-2 py-0.5 rounded-full bg-[rgba(0,85,212,0.2)] text-[#4D9BFF] border border-[rgba(0,85,212,0.3)]">New</span>
+              </div>
+              <p className="text-[13px] text-[#8899B3] mt-0.5">
+                Ask anything about TBR performance — get data-backed answers with charts, tables, and statistical breakdowns.
+              </p>
+            </div>
+          </div>
+          <div className="hidden sm:flex items-center gap-2 text-[#4D9BFF] text-sm font-semibold group-hover:gap-3 transition-all">
+            <span>Explore</span>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M5 12h14" />
+              <path d="M12 5l7 7-7 7" />
+            </svg>
+          </div>
+        </div>
+      </Link>
+
       <div className="mb-8">
         <h1 className="font-display text-2xl font-bold tracking-wider mb-1">E1 RACE ANALYTICS</h1>
         <p className="text-[var(--text-secondary)] text-sm mb-6">
