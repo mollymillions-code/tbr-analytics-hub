@@ -1,65 +1,130 @@
-import Image from "next/image";
+"use client";
+
+import { useEffect, useState } from "react";
+import { AllData } from "@/lib/types";
+import { getAllData, getRaceInfo, getClassifications } from "@/lib/data";
 
 export default function Home() {
+  const [data, setData] = useState<AllData | null>(null);
+  const [selectedSeason, setSelectedSeason] = useState<string | null>(null);
+
+  useEffect(() => {
+    getAllData().then((d) => {
+      setData(d);
+      const seasons = Object.keys(d.seasons);
+      setSelectedSeason(seasons[seasons.length - 1]);
+    });
+  }, []);
+
+  if (!data) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="text-center">
+          <div className="w-12 h-12 border-4 border-[var(--accent-cyan)] border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <div className="font-display text-sm tracking-wider text-[var(--text-muted)]">LOADING DATA</div>
+        </div>
+      </div>
+    );
+  }
+
+  const seasons = Object.keys(data.seasons);
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
+    <div>
+      <div className="mb-8">
+        <h1 className="font-display text-2xl font-bold tracking-wider mb-1">E1 RACE ANALYTICS</h1>
+        <p className="text-[var(--text-secondary)] text-sm mb-6">
+          Performance data across {seasons.length} seasons — Team Blue Rising, E1 World Championship
+        </p>
+        <div className="flex gap-3 flex-wrap">
+          {seasons.map((season) => (
+            <button
+              key={season}
+              onClick={() => setSelectedSeason(season)}
+              className={`px-5 py-3 rounded-lg font-semibold text-sm uppercase tracking-wider border-2 transition-all cursor-pointer ${
+                selectedSeason === season
+                  ? "bg-[#0088cc] border-[#0088cc] text-white"
+                  : "bg-[var(--bg-card)] border-[var(--border-color)] text-[var(--text-secondary)] hover:border-[var(--accent-cyan)] hover:text-[var(--accent-cyan)]"
+              }`}
             >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+              {season}
+            </button>
+          ))}
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+      </div>
+
+      {selectedSeason && (
+        <div>
+          <div className="flex items-center gap-3 mb-5">
+            <h2 className="font-display text-lg font-bold tracking-wider text-[var(--accent-cyan)]">
+              {selectedSeason.toUpperCase()}
+            </h2>
+            <span className="text-xs text-[var(--text-muted)] bg-[var(--bg-card)] px-3 py-1 rounded-full border border-[var(--border-color)]">
+              {Object.keys(data.seasons[selectedSeason].races).length} ROUNDS
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            {Object.entries(data.seasons[selectedSeason].races).map(([raceName, raceData]) => {
+              const info = getRaceInfo(raceName);
+              const classifications = getClassifications(raceData.events);
+              const raceResults = classifications.filter(
+                (c) => c.session?.toLowerCase().includes("final") ||
+                  c.session?.toLowerCase().includes("race") ||
+                  c.session?.toLowerCase().includes("semi")
+              );
+              const totalSessions = classifications.length;
+              const roundNumber = raceName.match(/R(\d+)/)?.[1] || "?";
+              const location = raceName.replace(/^R\d+\s+/, "");
+
+              const tbrResults = classifications.flatMap((c) =>
+                c.results.filter((r) => r.team?.toLowerCase().includes("blue rising"))
+              );
+              const tbrBestFinish = tbrResults.length > 0
+                ? Math.min(...tbrResults.filter((r) => typeof r.pos === "number").map((r) => r.pos as number))
+                : null;
+
+              return (
+                <a
+                  key={raceName}
+                  href={`/race/${encodeURIComponent(selectedSeason)}/${encodeURIComponent(raceName)}`}
+                  className="race-card block bg-gradient-to-br from-[#1a1a2e] to-[#252542] border border-[var(--border-color)] rounded-xl overflow-hidden"
+                >
+                  <div className="h-1 bg-gradient-to-r from-[var(--accent-cyan)] to-[var(--accent-green)]" />
+                  <div className="p-5">
+                    <div className="flex items-start justify-between mb-3">
+                      <div>
+                        <div className="text-xs text-[var(--text-muted)] uppercase tracking-widest mb-1">
+                          Round {roundNumber}
+                        </div>
+                        <div className="font-display text-lg font-bold tracking-wide">{location}</div>
+                      </div>
+                      <span className="text-2xl">{info.emoji}</span>
+                    </div>
+                    <div className="text-xs text-[var(--text-muted)] mb-4">{info.country}</div>
+                    <div className="grid grid-cols-2 gap-3 mb-4">
+                      <div className="bg-[rgba(0,212,255,0.08)] rounded-lg p-2.5 text-center">
+                        <div className="font-numbers text-lg font-bold text-[var(--accent-cyan)]">{totalSessions}</div>
+                        <div className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider">Sessions</div>
+                      </div>
+                      <div className="bg-[rgba(0,255,136,0.08)] rounded-lg p-2.5 text-center">
+                        <div className="font-numbers text-lg font-bold text-[var(--accent-green)]">{raceResults.length}</div>
+                        <div className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider">Races</div>
+                      </div>
+                    </div>
+                    {tbrBestFinish && (
+                      <div className="bg-[rgba(0,71,255,0.15)] border border-[rgba(0,71,255,0.3)] rounded-lg px-3 py-2 text-center">
+                        <span className="text-xs text-[var(--text-muted)]">TBR Best: </span>
+                        <span className="font-numbers font-bold text-sm text-white">P{tbrBestFinish}</span>
+                      </div>
+                    )}
+                  </div>
+                </a>
+              );
+            })}
+          </div>
         </div>
-      </main>
+      )}
     </div>
   );
 }

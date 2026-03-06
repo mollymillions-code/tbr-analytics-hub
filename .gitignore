@@ -39,3 +39,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# raw PDF data (178MB+)
+/data/pdfs/
+/data/pdf_index.json

@@ -1,26 +1,75 @@
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Rajdhani:wght@300;400;500;600;700&family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --bg-primary: #0f0f23;
+  --bg-secondary: #1a1a2e;
+  --bg-card: #1e1e35;
+  --bg-header: #0d0d0d;
+  --text-primary: #ffffff;
+  --text-secondary: #888;
+  --text-muted: #666;
+  --border-color: #333;
+  --accent-cyan: #00d4ff;
+  --accent-green: #00ff88;
+  --accent-red: #ff0040;
+  --accent-purple: #a855f7;
+  --accent-orange: #ff8800;
+  --accent-gold: #ffd700;
+  --font-display: 'Orbitron', sans-serif;
+  --font-body: 'Rajdhani', sans-serif;
+  --font-numbers: 'Inter', 'JetBrains Mono', sans-serif;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --color-background: var(--bg-primary);
+  --color-foreground: var(--text-primary);
+  --font-sans: var(--font-body);
+  --font-mono: 'JetBrains Mono', monospace;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: linear-gradient(135deg, #0f0f23 0%, #16213e 50%, #0f0f23 100%);
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  min-height: 100vh;
 }
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: #0f0f23; }
+::-webkit-scrollbar-thumb { background: #333; border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: #555; }
+
+/* Orbitron headings */
+.font-display { font-family: var(--font-display); }
+.font-numbers { font-family: var(--font-numbers); }
+.font-body { font-family: var(--font-body); }
+
+/* Accent borders */
+.border-accent-cyan { border-color: var(--accent-cyan); }
+.border-accent-green { border-color: var(--accent-green); }
+.border-accent-red { border-color: var(--accent-red); }
+.border-accent-purple { border-color: var(--accent-purple); }
+
+/* Glow effects */
+.glow-cyan { box-shadow: 0 0 20px rgba(0, 212, 255, 0.2); }
+.glow-green { box-shadow: 0 0 20px rgba(0, 255, 136, 0.2); }
+
+/* Pulse animation */
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+.animate-pulse-dot { animation: pulse-dot 1.5s infinite; }
+
+/* Table hover */
+.race-table tr:hover { background: rgba(0, 212, 255, 0.05); }
+
+/* Card hover */
+.race-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 10px 30px rgba(0, 212, 255, 0.15);
+  border-color: var(--accent-cyan);
+}
+.race-card { transition: all 0.3s ease; }
