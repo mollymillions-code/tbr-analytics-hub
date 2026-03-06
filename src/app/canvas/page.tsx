@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, useCallback } from "react";
+import { useEffect, useMemo, useState, useCallback, useSyncExternalStore } from "react";
 import {
   AllData,
   ClassificationDoc,
@@ -13,27 +13,17 @@ import {
   ResponsiveContainer, BarChart, Bar, Cell, PieChart, Pie,
 } from "recharts";
 import { Search, Sparkles, ChevronRight, X } from "lucide-react";
+import {
+  getCanvasState,
+  subscribe,
+  setQuery as setStoreQuery,
+  clearResult,
+  runAnalysis as storeRunAnalysis,
+  type CanvasResult,
+  type AnalysisBlock,
+} from "@/lib/canvas-store";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
-
-interface AnalysisBlock {
-  type: "text" | "chart" | "table" | "stat-grid" | "heading";
-  content?: string;
-  chartType?: "bar" | "line" | "pie";
-  chartData?: Record<string, unknown>[];
-  chartConfig?: {
-    xKey: string;
-    yKeys: { key: string; color: string; name: string }[];
-    height?: number;
-  };
-  tableData?: { headers: string[]; rows: string[][] };
-  stats?: { label: string; value: string; color: string; sub?: string }[];
-}
-
-interface CanvasResult {
-  title: string;
-  blocks: AnalysisBlock[];
-}
 
 interface ClassificationEntry {
   season: string;
@@ -930,6 +920,35 @@ function analyzeOverview(
 
 // ─── Chart Renderer ─────────────────────────────────────────────────────────
 
+function AnalyzingIndicator({ startTime }: { startTime: number | null }) {
+  const [elapsed, setElapsed] = useState(0);
+
+  useEffect(() => {
+    if (!startTime) return;
+    const interval = setInterval(() => {
+      setElapsed(Math.floor((Date.now() - startTime) / 1000));
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [startTime]);
+
+  return (
+    <div className="flex flex-col items-center justify-center py-20">
+      <div className="w-10 h-10 border-4 border-[var(--accent-purple)] border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+      <div className="font-display text-xs tracking-wider text-[var(--text-muted)] mb-3">ANALYZING DATA</div>
+      <div className="font-numbers text-sm text-[var(--text-secondary)]">{elapsed}s</div>
+      <div className="w-48 h-1.5 bg-[#E8ECF1] rounded-full mt-3 overflow-hidden">
+        <div
+          className="h-full bg-gradient-to-r from-[var(--accent-cyan)] to-[var(--accent-purple)] rounded-full transition-all duration-1000 ease-linear"
+          style={{ width: `${Math.min(elapsed * 4, 95)}%` }}
+        />
+      </div>
+      <p className="text-[10px] text-[var(--text-muted)] mt-3">
+        You can navigate away — results will persist
+      </p>
+    </div>
+  );
+}
+
 function ChartBlock({ block }: { block: AnalysisBlock }) {
   if (!block.chartData || !block.chartConfig) return null;
   const { xKey, yKeys, height = 300 } = block.chartConfig;
@@ -1022,11 +1041,17 @@ const SUGGESTED_QUERIES = [
 
 export default function CanvasPage() {
   const [data, setData] = useState<AllData | null>(null);
-  const [query, setQuery] = useState("");
-  const [result, setResult] = useState<CanvasResult | null>(null);
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [history, setHistory] = useState<string[]>([]);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [localQuery, setLocalQuery] = useState("");
+
+  // Global store state
+  const canvasState = useSyncExternalStore(subscribe, getCanvasState, getCanvasState);
+  const { query, result, isAnalyzing, history, error: storeError } = canvasState;
+
+  // Sync local input with store query
+  useEffect(() => {
+    setLocalQuery(query);
+  }, [query]);
 
   useEffect(() => {
     let isMounted = true;
@@ -1036,9 +1061,9 @@ export default function CanvasPage() {
         if (!isMounted) return;
         setData(loadedData);
       })
-      .catch((error: unknown) => {
+      .catch((err: unknown) => {
         if (!isMounted) return;
-        setLoadError(error instanceof Error ? error.message : "Failed to load analytics data.");
+        setLoadError(err instanceof Error ? err.message : "Failed to load analytics data.");
       });
 
     return () => {
@@ -1048,60 +1073,20 @@ export default function CanvasPage() {
 
   const analysisContext = useMemo(() => (data ? buildAnalysisContext(data) : null), [data]);
   const dataSummary = useMemo(() => (analysisContext ? buildDataSummary(analysisContext) : null), [analysisContext]);
-  const abortControllerRef = useRef<AbortController | null>(null);
 
-  const runAnalysis = useCallback(async (q: string) => {
-    if (!analysisContext || !dataSummary || !q.trim()) return;
+  const fallbackFn = useCallback((q: string) => {
+    if (!analysisContext) return { title: "Error", blocks: [{ type: "text" as const, content: "No data available." }] };
+    return analyzeQuery(q, analysisContext);
+  }, [analysisContext]);
 
-    // Cancel any in-flight request
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
-    }
-
-    setIsAnalyzing(true);
-    setQuery(q);
-    setResult(null);
-
-    const controller = new AbortController();
-    abortControllerRef.current = controller;
-
-    try {
-      const response = await fetch("/api/canvas", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ query: q, dataSummary }),
-        signal: controller.signal,
-      });
-
-      if (!response.ok) {
-        throw new Error(`API error: ${response.status}`);
-      }
-
-      const parsed: CanvasResult = await response.json();
-      if (!controller.signal.aborted) {
-        setResult(parsed);
-        setHistory((prev) => [q, ...prev.filter((h) => h !== q)].slice(0, 10));
-      }
-    } catch (err) {
-      if (err instanceof Error && err.name === "AbortError") return;
-      console.error("Canvas analysis error:", err);
-      // Fallback to local analysis
-      const fallback = analyzeQuery(q, analysisContext);
-      if (!controller.signal.aborted) {
-        setResult(fallback);
-        setHistory((prev) => [q, ...prev.filter((h) => h !== q)].slice(0, 10));
-      }
-    } finally {
-      if (!controller.signal.aborted) {
-        setIsAnalyzing(false);
-      }
-      abortControllerRef.current = null;
-    }
-  }, [analysisContext, dataSummary]);
+  const runAnalysis = useCallback((q: string) => {
+    if (!dataSummary || !q.trim()) return;
+    storeRunAnalysis(q, dataSummary, fallbackFn);
+  }, [dataSummary, fallbackFn]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    runAnalysis(query);
+    runAnalysis(localQuery);
   };
 
   if (!data) {
@@ -1142,14 +1127,14 @@ export default function CanvasPage() {
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[var(--text-muted)]" />
           <input
             type="text"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
+            value={localQuery}
+            onChange={(e) => setLocalQuery(e.target.value)}
             placeholder="Ask about teams, pilots, fastest laps, sectors, championships..."
             className="w-full pl-12 pr-32 py-4 bg-white border-2 border-[#B8BEC9] rounded-xl text-[var(--text-primary)] text-sm font-body placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[var(--accent-cyan)] transition-colors"
           />
           <button
             type="submit"
-            disabled={isAnalyzing || !query.trim()}
+            disabled={isAnalyzing || !localQuery.trim()}
             className="absolute right-2 top-1/2 -translate-y-1/2 px-5 py-2 bg-[var(--accent-cyan)] text-white font-display text-xs font-bold tracking-wider rounded-lg hover:bg-[#003DA5] transition-colors disabled:opacity-40 cursor-pointer disabled:cursor-not-allowed flex items-center gap-2"
           >
             <Sparkles className="w-3.5 h-3.5" />
@@ -1166,7 +1151,7 @@ export default function CanvasPage() {
             {SUGGESTED_QUERIES.map((sq) => (
               <button
                 key={sq}
-                onClick={() => { setQuery(sq); runAnalysis(sq); }}
+                onClick={() => { setLocalQuery(sq); runAnalysis(sq); }}
                 className="px-3 py-2 bg-white border border-[#B8BEC9] rounded-lg text-xs text-[#3D4A5C] hover:border-[var(--accent-cyan)] hover:text-[var(--accent-cyan)] transition-colors cursor-pointer flex items-center gap-1.5"
               >
                 <ChevronRight className="w-3 h-3" />
@@ -1177,15 +1162,15 @@ export default function CanvasPage() {
         </div>
       )}
 
-      {/* Loading State */}
-      {isAnalyzing && (
-        <div className="flex items-center justify-center py-20">
-          <div className="text-center">
-            <div className="w-10 h-10 border-4 border-[var(--accent-purple)] border-t-transparent rounded-full animate-spin mx-auto mb-3" />
-            <div className="font-display text-xs tracking-wider text-[var(--text-muted)]">ANALYZING DATA</div>
-          </div>
+      {/* Error State */}
+      {storeError && !isAnalyzing && (
+        <div className="mb-6 rounded-xl border border-[rgba(211,47,47,0.3)] bg-[rgba(211,47,47,0.06)] px-5 py-4 text-center">
+          <div className="text-sm font-semibold text-[var(--accent-red)]">{storeError}</div>
         </div>
       )}
+
+      {/* Loading State */}
+      {isAnalyzing && <AnalyzingIndicator startTime={canvasState.startTime} />}
 
       {/* Results */}
       {result && !isAnalyzing && (
@@ -1196,7 +1181,7 @@ export default function CanvasPage() {
               {result.title}
             </h2>
             <button
-              onClick={() => { setResult(null); setQuery(""); }}
+              onClick={() => { clearResult(); setLocalQuery(""); }}
               className="text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors cursor-pointer"
             >
               <X className="w-5 h-5" />
@@ -1265,7 +1250,7 @@ export default function CanvasPage() {
                 {history.slice(1).map((h, i) => (
                   <button
                     key={i}
-                    onClick={() => { setQuery(h); runAnalysis(h); }}
+                    onClick={() => { setLocalQuery(h); runAnalysis(h); }}
                     className="px-2 py-1 bg-[var(--bg-secondary)] rounded text-[10px] text-[var(--text-muted)] hover:text-[var(--accent-cyan)] transition-colors cursor-pointer"
                   >
                     {h}

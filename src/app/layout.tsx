@@ -7,6 +7,7 @@ import "./globals.css";
 import { auth } from "@/auth";
 import { Providers } from "@/components/Providers";
 import { UserMenu } from "@/components/UserMenu";
+import { CanvasStatus } from "@/components/CanvasStatus";
 
 const integral = localFont({
   src: [
@@ -101,6 +102,7 @@ export default async function RootLayout({
           <main className="max-w-[1600px] mx-auto px-5 py-6">
             {children}
           </main>
+          <CanvasStatus />
         </Providers>
       </body>
     </html>
