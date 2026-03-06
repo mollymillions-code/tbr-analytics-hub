@@ -231,6 +231,34 @@
     border-color: #0055D4 !important;
 }
 
+.jd-nav-tab.inactive-session {
+    opacity: 0.45;
+    cursor: not-allowed;
+    background: #f0f1f5;
+    border-color: #D0D5DD;
+    color: #8D95A3;
+}
+
+.jd-nav-tab.inactive-session:hover {
+    transform: none;
+    color: #8D95A3;
+    border-color: #D0D5DD;
+    background: #f0f1f5;
+}
+
+.dark-mode .jd-nav-tab.inactive-session {
+    opacity: 0.35;
+    background: rgba(30, 30, 47, 0.5);
+    border-color: #2a2a3a;
+    color: #555;
+}
+
+.dark-mode .jd-nav-tab.inactive-session:hover {
+    color: #555 !important;
+    border-color: #2a2a3a !important;
+    background: rgba(30, 30, 47, 0.5) !important;
+}
+
 .dark-mode .jd-nav-tab {
     color: #888;
     background: var(--jd-bg-table-header);

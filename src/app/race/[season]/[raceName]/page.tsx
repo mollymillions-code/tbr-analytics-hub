@@ -396,15 +396,20 @@ export default function RaceDashboard() {
             </div>
           </div>
           <nav className="jd-nav-tabs">
-            {raceSessions.map((session) => (
-              <button
-                key={session.key}
-                onClick={() => setActiveRace(session.key)}
-                className={`jd-nav-tab ${activeRace === session.key ? "active" : ""}`}
-              >
-                {session.title}
-              </button>
-            ))}
+            {sessions.map((session) => {
+              const isRace = isRaceLikeSession(session.title);
+              return (
+                <button
+                  key={session.key}
+                  onClick={isRace ? () => setActiveRace(session.key) : undefined}
+                  className={`jd-nav-tab ${activeRace === session.key ? "active" : ""} ${!isRace ? "inactive-session" : ""}`}
+                  disabled={!isRace}
+                  title={!isRace ? "Non-race session — data view coming soon" : undefined}
+                >
+                  {session.title}
+                </button>
+              );
+            })}
             {championship && (
               <button
                 onClick={() => setActiveRace("__championship__")}
