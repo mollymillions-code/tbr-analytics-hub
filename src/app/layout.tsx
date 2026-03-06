@@ -58,10 +58,33 @@ const jetBrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "TBR Analytics Hub — Team Blue Rising",
-  description: "Race analytics and performance data for Team Blue Rising — E1 World Championship",
+  title: {
+    default: "TBR Analytics Hub — Team Blue Rising",
+    template: "%s | TBR Analytics Hub",
+  },
+  description:
+    "Race analytics, performance data, and AI-powered insights for Team Blue Rising — E1 World Electric Powerboat Championship.",
+  keywords: [
+    "Team Blue Rising",
+    "TBR",
+    "E1",
+    "electric powerboat",
+    "race analytics",
+    "performance data",
+    "UIM E1 World Championship",
+  ],
   icons: {
-    icon: "/tbr-logo.svg",
+    icon: [
+      { url: "/tbr-favicon.svg", type: "image/svg+xml" },
+    ],
+    apple: "/tbr-favicon.svg",
+  },
+  openGraph: {
+    title: "TBR Analytics Hub — Team Blue Rising",
+    description:
+      "Race analytics, performance data, and AI-powered insights for Team Blue Rising — E1 World Electric Powerboat Championship.",
+    siteName: "TBR Analytics Hub",
+    type: "website",
   },
 };
 
