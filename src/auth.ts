@@ -1,14 +1,25 @@
 import NextAuth from "next-auth";
-import Google from "next-auth/providers/google";
+import Credentials from "next-auth/providers/credentials";
 import { NextResponse } from "next/server";
 
 const ALLOWED_DOMAINS = ["teambluerising.com", "leaguesportsco.com"];
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   providers: [
-    Google({
-      clientId: process.env.GOOGLE_CLIENT_ID,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+    Credentials({
+      name: "Email",
+      credentials: {
+        email: { label: "Email", type: "email" },
+      },
+      async authorize(credentials) {
+        const email = (credentials?.email as string)?.trim().toLowerCase();
+        if (!email) return null;
+
+        const domain = email.split("@")[1];
+        if (!domain || !ALLOWED_DOMAINS.includes(domain)) return null;
+
+        return { id: email, email, name: email.split("@")[0] };
+      },
     }),
   ],
   callbacks: {
@@ -26,12 +37,6 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       }
 
       return !!auth;
-    },
-    async signIn({ user }) {
-      const email = user.email;
-      if (!email) return false;
-      const domain = email.split("@")[1]?.toLowerCase();
-      return ALLOWED_DOMAINS.includes(domain);
     },
     async session({ session }) {
       return session;
