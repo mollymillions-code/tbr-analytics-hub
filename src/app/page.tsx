@@ -1,22 +1,48 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { AllData } from "@/lib/types";
-import { getAllData, getRaceInfo, getClassifications } from "@/lib/data";
+import { getAllData, getRaceInfo } from "@/lib/data";
+import { collectEventSessions, isRaceLikeSession, sortSeasons } from "@/lib/race";
 
 export default function Home() {
   const [data, setData] = useState<AllData | null>(null);
   const [selectedSeason, setSelectedSeason] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   useEffect(() => {
-    getAllData().then((d) => {
-      setData(d);
-      const seasons = Object.keys(d.seasons);
-      setSelectedSeason(seasons[seasons.length - 1]);
-    });
+    let isMounted = true;
+
+    getAllData()
+      .then((d) => {
+        if (!isMounted) return;
+        setData(d);
+        const seasons = sortSeasons(Object.keys(d.seasons));
+        setSelectedSeason(seasons[seasons.length - 1] ?? null);
+      })
+      .catch((error: unknown) => {
+        if (!isMounted) return;
+        setLoadError(error instanceof Error ? error.message : "Failed to load analytics data.");
+      });
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   if (!data) {
+    if (loadError) {
+      return (
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <div className="max-w-md rounded-2xl border border-[rgba(255,0,64,0.35)] bg-[rgba(255,0,64,0.08)] px-6 py-5 text-center">
+            <div className="font-display text-sm tracking-wider text-[var(--accent-red)]">DATA UNAVAILABLE</div>
+            <p className="mt-2 text-sm text-[var(--text-secondary)]">{loadError}</p>
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <div className="text-center">
@@ -27,7 +53,7 @@ export default function Home() {
     );
   }
 
-  const seasons = Object.keys(data.seasons);
+  const seasons = sortSeasons(Object.keys(data.seasons));
 
   return (
     <div>
@@ -67,25 +93,21 @@ export default function Home() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
             {Object.entries(data.seasons[selectedSeason].races).map(([raceName, raceData]) => {
               const info = getRaceInfo(raceName);
-              const classifications = getClassifications(raceData.events);
-              const raceResults = classifications.filter(
-                (c) => c.session?.toLowerCase().includes("final") ||
-                  c.session?.toLowerCase().includes("race") ||
-                  c.session?.toLowerCase().includes("semi")
-              );
-              const totalSessions = classifications.length;
+              const sessions = collectEventSessions(raceData.events);
+              const totalSessions = sessions.length;
+              const raceSessions = sessions.filter((session) => isRaceLikeSession(session.title));
               const roundNumber = raceName.match(/R(\d+)/)?.[1] || "?";
               const location = raceName.replace(/^R\d+\s+/, "");
 
-              const tbrResults = classifications.flatMap((c) =>
-                c.results.filter((r) => r.team?.toLowerCase().includes("blue rising"))
+              const tbrResults = sessions.flatMap((session) =>
+                session.classification?.results.filter((result) => result.team?.toLowerCase().includes("blue rising")) ?? []
               );
               const tbrBestFinish = tbrResults.length > 0
                 ? Math.min(...tbrResults.filter((r) => typeof r.pos === "number").map((r) => r.pos as number))
                 : null;
 
               return (
-                <a
+                <Link
                   key={raceName}
                   href={`/race/${encodeURIComponent(selectedSeason)}/${encodeURIComponent(raceName)}`}
                   className="race-card block bg-gradient-to-br from-[#1a1a2e] to-[#252542] border border-[var(--border-color)] rounded-xl overflow-hidden"
@@ -108,7 +130,7 @@ export default function Home() {
                         <div className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider">Sessions</div>
                       </div>
                       <div className="bg-[rgba(0,255,136,0.08)] rounded-lg p-2.5 text-center">
-                        <div className="font-numbers text-lg font-bold text-[var(--accent-green)]">{raceResults.length}</div>
+                        <div className="font-numbers text-lg font-bold text-[var(--accent-green)]">{raceSessions.length}</div>
                         <div className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider">Races</div>
                       </div>
                     </div>
@@ -119,7 +141,7 @@ export default function Home() {
                       </div>
                     )}
                   </div>
-                </a>
+                </Link>
               );
             })}
           </div>

@@ -50,7 +50,7 @@ function LoginContent() {
           Sign in with Google
         </button>
 
-        <p className="text-[var(--text-muted)] text-[10px] uppercase tracking-widest mt-6">
+        <p className="text-[var(--text-secondary)] text-[10px] font-semibold uppercase tracking-widest mt-6">
           Restricted to authorized team members
         </p>
       </div>

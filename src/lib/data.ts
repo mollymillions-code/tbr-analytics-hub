@@ -1,12 +1,30 @@
 import { AllData, ClassificationDoc, AnalysisDoc, EventDoc } from "./types";
 
 let cachedData: AllData | null = null;
+let dataPromise: Promise<AllData> | null = null;
 
 export async function getAllData(): Promise<AllData> {
   if (cachedData) return cachedData;
-  const res = await fetch("/data/e1_all_data.json");
-  cachedData = await res.json();
-  return cachedData!;
+  if (dataPromise) return dataPromise;
+
+  dataPromise = fetch("/api/data", {
+    cache: "no-store",
+    credentials: "same-origin",
+  })
+    .then(async (res) => {
+      if (!res.ok) {
+        throw new Error(`Failed to load race data (${res.status})`);
+      }
+
+      const data = (await res.json()) as AllData;
+      cachedData = data;
+      return data;
+    })
+    .finally(() => {
+      dataPromise = null;
+    });
+
+  return dataPromise;
 }
 
 export function getClassifications(events: Record<string, EventDoc[]>): ClassificationDoc[] {

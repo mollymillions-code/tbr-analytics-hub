@@ -1,84 +1,43 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useState, useMemo, useCallback } from "react";
+import Link from "next/link";
 import { useParams } from "next/navigation";
-import {
-  AllData,
-  ClassificationDoc,
-  AnalysisDoc,
-  GridDoc,
-  ChampionshipDoc,
-  EventDoc,
-  RaceResult,
-  TeamAnalysis,
-} from "@/lib/types";
-import { getAllData, getRaceInfo, getRaceSessionTypes } from "@/lib/data";
-import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
-  BarChart,
-  Bar,
-  Cell,
-} from "recharts";
-
-// ─── Helpers ────────────────────────────────────────────────────────────────
-
-function timeToSeconds(t: string | null): number | null {
-  if (!t) return null;
-  const parts = t.split(":");
-  if (parts.length === 3) return +parts[0] * 3600 + +parts[1] * 60 + +parts[2];
-  if (parts.length === 2) return +parts[0] * 60 + +parts[1];
-  return +parts[0] || null;
-}
-
-function formatLapTime(t: string | null): string {
-  if (!t) return "-";
-  return t;
-}
-
-const TEAM_COLORS: Record<string, string> = {
-  "team blue rising": "#0047FF",
-  "team brady": "#ff0040",
-  "team miami": "#ff8800",
-  "team rafa": "#a855f7",
-  "sergio perez": "#00ff88",
-  "westbrook": "#00d4ff",
-  "didier drogba": "#ffd700",
-  "steve aoki": "#ff69b4",
-  "will.i" : "#7fff00",
-  "tom brady": "#ff0040",
-};
-
-function getTeamColor(team: string): string {
-  const lower = team.toLowerCase();
-  for (const [key, color] of Object.entries(TEAM_COLORS)) {
-    if (lower.includes(key)) return color;
-  }
-  const hash = [...team].reduce((acc, c) => acc + c.charCodeAt(0), 0);
-  const hue = hash % 360;
-  return `hsl(${hue}, 70%, 60%)`;
-}
-
-function isTBR(team: string): boolean {
-  return team.toLowerCase().includes("blue rising");
-}
+import { AllData, ChampionshipDoc } from "@/lib/types";
+import { getAllData } from "@/lib/data";
+import { collectEventSessions, parseSessionMetrics } from "@/lib/race";
+import "./dashboard.css";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
-type SessionTab = {
+interface SessionData {
   key: string;
   name: string;
-  type: string;
-  classification: ClassificationDoc | null;
-  analysis: AnalysisDoc | null;
-  grid: GridDoc | null;
-};
+  title: string;
+  laps: number | null;
+  distance: string;
+  wind: string;
+  fastestLap: { pilot: string; time: string; lap: number; kph: number } | null;
+  penalties: string[];
+  teams: string[];
+  grid: { pos: number; team: string; pilot: string; no: string }[];
+  results: {
+    pos: number | string;
+    team: string;
+    pilot: string;
+    no: string;
+    time: string;
+    gap: string;
+    kph: number | string;
+    bestLap: string;
+    bestLapNo: number | string;
+    sl: string;
+    ll: string;
+    start: number | string;
+    passed: number | string;
+    note: string;
+  }[];
+}
 
 // ─── Main Page ──────────────────────────────────────────────────────────────
 
@@ -88,10 +47,28 @@ export default function RaceDashboard() {
   const raceName = decodeURIComponent(params.raceName as string);
 
   const [data, setData] = useState<AllData | null>(null);
-  const [activeTab, setActiveTab] = useState<string | null>(null);
+  const [activeRace, setActiveRace] = useState<string>("summary");
+  const [isDark, setIsDark] = useState(true);
+  const [gainsView, setGainsView] = useState<"pilot" | "team">("pilot");
+  const [expandedBreakdowns, setExpandedBreakdowns] = useState<Set<string>>(new Set());
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   useEffect(() => {
-    getAllData().then(setData);
+    let isMounted = true;
+
+    getAllData()
+      .then((loadedData) => {
+        if (!isMounted) return;
+        setData(loadedData);
+      })
+      .catch((error: unknown) => {
+        if (!isMounted) return;
+        setLoadError(error instanceof Error ? error.message : "Failed to load race data.");
+      });
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   const raceData = useMemo(() => {
@@ -99,59 +76,97 @@ export default function RaceDashboard() {
     return data.seasons[season]?.races[raceName] || null;
   }, [data, season, raceName]);
 
-  const sessions = useMemo((): SessionTab[] => {
+  // Build session data from every available document so older weekends stay usable.
+  const sessions = useMemo((): SessionData[] => {
     if (!raceData) return [];
-    const tabs: SessionTab[] = [];
-    const seen = new Set<string>();
+    return collectEventSessions(raceData.events).map((session) => {
+      const classification = session.classification;
+      const analysis = session.analysis;
+      const gridDoc = session.grid;
+      const parsedMetrics = parseSessionMetrics(gridDoc?.session ?? session.title);
 
-    for (const [eventPath, eventDocs] of Object.entries(raceData.events)) {
-      for (const doc of eventDocs) {
-        if (doc.type === "classification") {
-          const cls = doc as ClassificationDoc;
-          const sessionName = cls.session || eventPath.split("/").pop() || eventPath;
-          if (seen.has(sessionName)) continue;
-          seen.add(sessionName);
+      const gridEntries = gridDoc?.grid?.map((gridEntry) => ({
+        pos: gridEntry.pos,
+        team: gridEntry.team,
+        pilot: gridEntry.pilot,
+        no: gridEntry.no,
+      })) ?? [];
 
-          // Skip merge/combined summary docs
-          if (sessionName.toLowerCase().startsWith("merge ") || sessionName.toLowerCase().startsWith("combined ") || sessionName === "E1 Series") continue;
+      const gridMap = new Map<string, number>();
+      for (const gridEntry of gridEntries) {
+        gridMap.set(gridEntry.no, gridEntry.pos);
+      }
 
-          let sessionType = "race";
-          const lower = sessionName.toLowerCase();
-          if (lower.includes("practice") || lower.includes("morning") || lower.includes("afternoon")) sessionType = "practice";
-          else if (lower.includes("qualif") || lower.includes("time trial") || lower.includes("qrace") || lower.includes("q1") || lower.includes("q2") || lower === "qp") sessionType = "qualifying";
-          else if (lower.includes("semi")) sessionType = "semifinal";
-          else if (lower.includes("final")) sessionType = "final";
-          else if (lower.includes("place")) sessionType = "placerace";
-          else if (lower.includes("race off") || lower.includes("race-off") || lower.includes("eliminator")) sessionType = "raceoff";
-          else if (lower.includes("group stage") || lower.includes("group a") || lower.includes("group b")) sessionType = "groupstage";
-
-          // Find matching analysis and grid
-          let analysis: AnalysisDoc | null = null;
-          let grid: GridDoc | null = null;
-          for (const docs2 of Object.values(raceData.events)) {
-            for (const d of docs2) {
-              if (d.type === "analysis" && (d as AnalysisDoc).session === cls.session) {
-                analysis = d as AnalysisDoc;
-              }
-              if (d.type === "grid" && (d as GridDoc).session?.includes(sessionName)) {
-                grid = d as GridDoc;
-              }
-            }
+      const slLlMap = new Map<string, { sl: number[]; ll: number[] }>();
+      if (analysis?.teams) {
+        for (const team of analysis.teams) {
+          const info: { sl: number[]; ll: number[] } = { sl: [], ll: [] };
+          for (const lap of team.laps) {
+            if (lap.marker === "SL") info.sl.push(lap.lap);
+            if (lap.marker === "LL") info.ll.push(lap.lap);
           }
-
-          tabs.push({ key: eventPath, name: sessionName, type: sessionType, classification: cls, analysis, grid });
+          slLlMap.set(team.no, info);
         }
       }
-    }
 
-    // Sort by session type priority
-    const typeOrder: Record<string, number> = {
-      practice: 0, qualifying: 1, groupstage: 2, raceoff: 3, semifinal: 4, placerace: 5, final: 6, race: 3,
-    };
-    tabs.sort((a, b) => (typeOrder[a.type] ?? 3) - (typeOrder[b.type] ?? 3));
-    return tabs;
+      const results = classification?.results.map((result) => {
+        const gridPos = gridMap.get(result.no);
+        const posNum = typeof result.pos === "number" ? result.pos : null;
+        const passed: number | string = gridPos !== undefined && posNum !== null ? gridPos - posNum : "-";
+        const slLl = slLlMap.get(result.no);
+
+        return {
+          pos: result.pos,
+          team: result.team,
+          pilot: result.pilot,
+          no: result.no,
+          time: result.total_time || "-",
+          gap: result.gap || "-",
+          kph: result.kph || "-",
+          bestLap: result.best_lap?.time || "-",
+          bestLapNo: (result.best_lap?.lap ?? "-") as number | string,
+          sl: slLl && slLl.sl.length > 0 ? slLl.sl.join(",") : "-",
+          ll: slLl && slLl.ll.length > 0 ? slLl.ll.join(",") : "-",
+          start: (gridPos ?? "-") as number | string,
+          passed,
+          note: result.note || "",
+        };
+      }) ?? [];
+
+      const teams = new Set<string>([
+        ...gridEntries.map((entry) => entry.team),
+        ...results.map((result) => result.team),
+        ...(analysis?.teams.map((team) => team.team) ?? []),
+      ]);
+
+      const penalties = results
+        .filter((result) => result.note && result.note.toLowerCase().includes("penalty"))
+        .map((result) => `${result.team.toUpperCase()} - ${result.note.toUpperCase()}`);
+
+      return {
+        key: session.key,
+        name: session.key,
+        title: session.title,
+        laps: classification?.laps ?? parsedMetrics.laps,
+        distance: classification?.distance || parsedMetrics.distance,
+        wind: classification?.wind || "",
+        fastestLap: classification?.fastest_lap
+          ? {
+              pilot: classification.fastest_lap.pilot,
+              time: classification.fastest_lap.time,
+              lap: classification.fastest_lap.lap,
+              kph: classification.fastest_lap.kph,
+            }
+          : null,
+        penalties,
+        teams: [...teams],
+        grid: gridEntries,
+        results,
+      };
+    });
   }, [raceData]);
 
+  // Championship data
   const championship = useMemo((): ChampionshipDoc | null => {
     if (!raceData) return null;
     for (const docs of Object.values(raceData.events)) {
@@ -164,25 +179,137 @@ export default function RaceDashboard() {
     return null;
   }, [raceData]);
 
-  useEffect(() => {
-    if (sessions.length > 0 && !activeTab) {
-      // Default to first final, or last session
-      const finals = sessions.filter((s) => s.type === "final");
-      setActiveTab(finals.length > 0 ? finals[0].name : sessions[sessions.length - 1].name);
-    }
-  }, [sessions, activeTab]);
-
-  const activeSession = sessions.find((s) => s.name === activeTab) || null;
-  const info = getRaceInfo(raceName);
   const roundNumber = raceName.match(/R(\d+)/)?.[1] || "?";
   const location = raceName.replace(/^R\d+\s+/, "");
+  const seasonNumber = season.match(/Season (\d+)/)?.[1] || "?";
+  const seasonYear = season.match(/(\d{4})/)?.[1] || "?";
+
+  const toggleBreakdown = useCallback((id: string) => {
+    setExpandedBreakdowns(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }, []);
+
+  // Calculate position gains across all sessions
+  const positionGains = useMemo(() => {
+    const pilotGains: Record<string, { total: number; team: string; penalties: number; breakdown: { race: string; gained: number | string; start: number | string; finish: number | string; penalty: string | null }[] }> = {};
+    const teamGains: Record<string, { total: number; penalties: number; breakdown: { race: string; pilot: string; gained: number | string; start: number | string; finish: number | string; penalty: string | null }[]; pilots: Record<string, { total: number; penalties: number }> }> = {};
+
+    for (const session of sessions) {
+      for (const r of session.results) {
+        const passed = typeof r.passed === "number" ? r.passed : 0;
+        const hasPenalty = r.note && r.note.toLowerCase().includes("penalty");
+
+        if (!pilotGains[r.pilot]) {
+          pilotGains[r.pilot] = { total: 0, team: r.team, penalties: 0, breakdown: [] };
+        }
+        pilotGains[r.pilot].total += passed;
+        if (hasPenalty) pilotGains[r.pilot].penalties += 1;
+        pilotGains[r.pilot].breakdown.push({
+          race: session.title,
+          gained: r.passed,
+          start: r.start,
+          finish: r.pos,
+          penalty: hasPenalty ? r.note : null,
+        });
+
+        if (!teamGains[r.team]) {
+          teamGains[r.team] = { total: 0, penalties: 0, breakdown: [], pilots: {} };
+        }
+        teamGains[r.team].total += passed;
+        if (hasPenalty) teamGains[r.team].penalties += 1;
+        teamGains[r.team].breakdown.push({
+          race: session.title,
+          pilot: r.pilot,
+          gained: r.passed,
+          start: r.start,
+          finish: r.pos,
+          penalty: hasPenalty ? r.note : null,
+        });
+        if (!teamGains[r.team].pilots[r.pilot]) {
+          teamGains[r.team].pilots[r.pilot] = { total: 0, penalties: 0 };
+        }
+        teamGains[r.team].pilots[r.pilot].total += passed;
+        if (hasPenalty) teamGains[r.team].pilots[r.pilot].penalties += 1;
+      }
+    }
+
+    return { pilotGains, teamGains };
+  }, [sessions]);
+
+  // Race winners
+  const raceWinners = useMemo(() => {
+    return sessions
+      .filter(s => s.results.length > 0 && s.results[0].pos === 1)
+      .map(s => {
+        const winner = s.results[0];
+        return {
+          race: s.title,
+          team: winner.team,
+          pilot: winner.pilot,
+          sl: winner.sl,
+          ll: winner.ll,
+          start: winner.start,
+        };
+      });
+  }, [sessions]);
+
+  // Biggest gainers/losers
+  const biggestGainers = useMemo(() => {
+    const all: { race: string; pilot: string; team: string; start: number; finish: number; gained: number; sl: string; ll: string }[] = [];
+    for (const s of sessions) {
+      for (const r of s.results) {
+        if (typeof r.passed === "number" && typeof r.start === "number" && typeof r.pos === "number") {
+          all.push({ race: s.title, pilot: r.pilot, team: r.team, start: r.start, finish: r.pos, gained: r.passed, sl: r.sl, ll: r.ll });
+        }
+      }
+    }
+    return all.sort((a, b) => b.gained - a.gained);
+  }, [sessions]);
+
+  // Fastest laps across all sessions
+  const fastestLaps = useMemo(() => {
+    return sessions
+      .filter(s => s.fastestLap)
+      .map(s => ({ race: s.title, ...s.fastestLap! }))
+      .sort((a, b) => {
+        const ta = timeToSeconds(a.time);
+        const tb = timeToSeconds(b.time);
+        return (ta || 999) - (tb || 999);
+      });
+  }, [sessions]);
+
+  const totalPenalties = sessions.reduce((sum, s) => sum + s.penalties.length, 0);
+  const uniqueTeams = new Set(sessions.flatMap((session) => session.teams));
+  const overallFastestLap = fastestLaps[0]?.time || "-";
+  const hasResultData = sessions.some((session) => session.results.length > 0);
 
   if (!data) {
+    if (loadError) {
+      return (
+        <div className={`jeddah-dashboard ${isDark ? "" : "light-mode"}`}>
+          <div style={{ textAlign: "center", padding: "80px 20px" }}>
+            <div style={{ fontFamily: "var(--jd-font-display)", fontSize: "1.2rem", color: "#ff0040", marginBottom: "8px" }}>
+              DATA UNAVAILABLE
+            </div>
+            <p style={{ color: "#666" }}>{loadError}</p>
+          </div>
+        </div>
+      );
+    }
+
     return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="text-center">
-          <div className="w-12 h-12 border-4 border-[var(--accent-cyan)] border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-          <div className="font-display text-sm tracking-wider text-[var(--text-muted)]">LOADING DATA</div>
+      <div className={`jeddah-dashboard ${isDark ? "" : "light-mode"}`}>
+        <div className="jd-loading">
+          <div style={{ textAlign: "center" }}>
+            <div className="jd-spinner" />
+            <div style={{ fontFamily: "var(--jd-font-display)", fontSize: "0.85rem", letterSpacing: "2px", color: "#666", marginTop: "16px" }}>
+              LOADING DATA
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -190,80 +317,308 @@ export default function RaceDashboard() {
 
   if (!raceData) {
     return (
-      <div className="text-center py-20">
-        <div className="font-display text-xl text-[var(--accent-red)] mb-2">RACE NOT FOUND</div>
-        <p className="text-[var(--text-muted)]">No data for {season} / {raceName}</p>
-        <a href="/" className="inline-block mt-4 text-[var(--accent-cyan)] hover:underline">&larr; Back to Seasons</a>
+      <div className={`jeddah-dashboard ${isDark ? "" : "light-mode"}`}>
+        <div style={{ textAlign: "center", padding: "80px 20px" }}>
+          <div style={{ fontFamily: "var(--jd-font-display)", fontSize: "1.2rem", color: "#ff0040", marginBottom: "8px" }}>
+            RACE NOT FOUND
+          </div>
+          <p style={{ color: "#666" }}>No data for {season} / {raceName}</p>
+          <Link href="/" style={{ color: "#00d4ff", marginTop: "16px", display: "inline-block" }}>&larr; Back to Seasons</Link>
+        </div>
       </div>
     );
   }
 
-  // ─── Session type badges ──────────────────────────────────────────────────
-  const typeStyles: Record<string, string> = {
-    practice: "bg-[rgba(136,136,136,0.15)] text-[#888] border-[#555]",
-    qualifying: "bg-[rgba(168,85,247,0.15)] text-[var(--accent-purple)] border-[rgba(168,85,247,0.4)]",
-    groupstage: "bg-[rgba(0,212,255,0.15)] text-[var(--accent-cyan)] border-[rgba(0,212,255,0.4)]",
-    raceoff: "bg-[rgba(255,136,0,0.15)] text-[var(--accent-orange)] border-[rgba(255,136,0,0.4)]",
-    semifinal: "bg-[rgba(0,255,136,0.15)] text-[var(--accent-green)] border-[rgba(0,255,136,0.4)]",
-    placerace: "bg-[rgba(255,215,0,0.15)] text-[var(--accent-gold)] border-[rgba(255,215,0,0.4)]",
-    final: "bg-[rgba(255,0,64,0.15)] text-[var(--accent-red)] border-[rgba(255,0,64,0.4)]",
-    race: "bg-[rgba(0,212,255,0.15)] text-[var(--accent-cyan)] border-[rgba(0,212,255,0.4)]",
-  };
+  const activeSession = sessions.find((session) => session.key === activeRace);
 
   return (
-    <div>
-      {/* Header */}
-      <div className="mb-6">
-        <a href="/" className="text-xs text-[var(--text-muted)] hover:text-[var(--accent-cyan)] uppercase tracking-widest transition-colors">
-          &larr; {season}
-        </a>
-        <div className="flex items-center gap-4 mt-2">
-          <span className="text-4xl">{info.emoji}</span>
-          <div>
-            <div className="text-xs text-[var(--text-muted)] uppercase tracking-widest">Round {roundNumber}</div>
-            <h1 className="font-display text-2xl md:text-3xl font-bold tracking-wider">{location.toUpperCase()}</h1>
-            <div className="text-sm text-[var(--text-secondary)]">{info.country} &middot; {sessions.length} sessions</div>
+    <div className={`jeddah-dashboard ${isDark ? "" : "light-mode"}`}>
+      {/* Sub Header */}
+      <div className="jd-sub-header">
+        <div className="jd-sub-header-content">
+          <div className="jd-event-title">
+            <Link href="/" className="jd-back-link">&larr; Back</Link>
+            <h1>{location} GP Analysis by TBR</h1>
+            <span className="round">R{roundNumber}</span>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: "30px" }}>
+            <div className="jd-event-stats">
+              <div className="jd-stat-item">
+                <div className="jd-stat-value">S{seasonNumber}</div>
+                <div className="jd-stat-label">Season</div>
+              </div>
+              <div className="jd-stat-item">
+                <div className="jd-stat-value">{seasonYear}</div>
+                <div className="jd-stat-label">Year</div>
+              </div>
+              <div className="jd-stat-item">
+                <div className="jd-stat-value">{uniqueTeams.size}</div>
+                <div className="jd-stat-label">Teams</div>
+              </div>
+              <div className="jd-stat-item">
+                <div className="jd-stat-value">{sessions.length}</div>
+                <div className="jd-stat-label">Sessions</div>
+              </div>
+            </div>
+            {/* Theme Toggle */}
+            <div className="jd-theme-toggle">
+              <span className="jd-theme-icon">&#127769;</span>
+              <button
+                type="button"
+                className="jd-toggle-switch"
+                onClick={() => setIsDark(!isDark)}
+                aria-label={isDark ? "Switch to light mode" : "Switch to dark mode"}
+              />
+              <span className="jd-theme-icon">&#9728;&#65039;</span>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Session Tabs */}
-      <div className="flex gap-2 flex-wrap mb-6 pb-4 border-b border-[var(--border-color)]">
-        {sessions.map((s) => (
-          <button
-            key={s.name}
-            onClick={() => setActiveTab(s.name)}
-            className={`px-3 py-2 rounded-lg text-xs font-semibold uppercase tracking-wider border transition-all cursor-pointer ${
-              activeTab === s.name
-                ? "bg-[var(--accent-cyan)] border-[var(--accent-cyan)] text-black"
-                : typeStyles[s.type] || typeStyles.race
-            }`}
-          >
-            {s.name}
-          </button>
-        ))}
-        {championship && (
-          <button
-            onClick={() => setActiveTab("__championship__")}
-            className={`px-3 py-2 rounded-lg text-xs font-semibold uppercase tracking-wider border transition-all cursor-pointer ${
-              activeTab === "__championship__"
-                ? "bg-[var(--accent-gold)] border-[var(--accent-gold)] text-black"
-                : "bg-[rgba(255,215,0,0.15)] text-[var(--accent-gold)] border-[rgba(255,215,0,0.4)]"
-            }`}
-          >
-            Championship
-          </button>
-        )}
+      {/* Race Selector */}
+      <div className="jd-race-selector">
+        <div className="jd-race-selector-content">
+          <div className="jd-race-selector-header">
+            <span className="jd-race-selector-label">Select Race</span>
+            <div className="jd-current-race-badge">
+              <span className="viewing-label">Viewing:</span>
+              <span>{activeRace === "summary" ? "Summary" : activeRace === "__championship__" ? "Championship" : activeSession?.title || activeRace}</span>
+            </div>
+          </div>
+          <nav className="jd-nav-tabs">
+            {sessions.map((session) => (
+              <button
+                key={session.key}
+                onClick={() => setActiveRace(session.key)}
+                className={`jd-nav-tab ${activeRace === session.key ? "active" : ""}`}
+              >
+                {session.title}
+              </button>
+            ))}
+            {championship && (
+              <button
+                onClick={() => setActiveRace("__championship__")}
+                className={`jd-nav-tab ${activeRace === "__championship__" ? "active" : ""}`}
+              >
+                Championship
+              </button>
+            )}
+            <button
+              onClick={() => setActiveRace("summary")}
+              className={`jd-nav-tab summary-tab ${activeRace === "summary" ? "active" : ""}`}
+            >
+              Summary
+            </button>
+          </nav>
+        </div>
       </div>
 
-      {/* Championship View */}
-      {activeTab === "__championship__" && championship && (
-        <ChampionshipView standings={championship.standings} />
+      {/* Main Content */}
+      <main className="jd-main-content">
+        {activeSession && <RaceView session={activeSession} />}
+        {activeRace === "__championship__" && championship && <ChampionshipView standings={championship.standings} />}
+        {activeRace === "summary" && (
+          <SummaryView
+            sessions={sessions}
+            totalPenalties={totalPenalties}
+            uniqueTeamCount={uniqueTeams.size}
+            overallFastestLap={overallFastestLap}
+            hasResultData={hasResultData}
+            positionGains={positionGains}
+            raceWinners={raceWinners}
+            biggestGainers={biggestGainers}
+            fastestLaps={fastestLaps}
+            gainsView={gainsView}
+            setGainsView={setGainsView}
+            expandedBreakdowns={expandedBreakdowns}
+            toggleBreakdown={toggleBreakdown}
+          />
+        )}
+      </main>
+    </div>
+  );
+}
+
+// ─── Helpers ────────────────────────────────────────────────────────────────
+
+function timeToSeconds(t: string | null): number | null {
+  if (!t || t === "-") return null;
+  const parts = t.split(":");
+  if (parts.length === 3) return +parts[0] * 3600 + +parts[1] * 60 + +parts[2];
+  if (parts.length === 2) return +parts[0] * 60 + +parts[1];
+  return +parts[0] || null;
+}
+
+function getPassedClass(passed: number | string): string {
+  if (passed === "-") return "jd-passed-neutral";
+  if (typeof passed === "number" && passed > 0) return "jd-passed-positive";
+  if (typeof passed === "number" && passed < 0) return "jd-passed-negative";
+  return "jd-passed-neutral";
+}
+
+function formatPassed(passed: number | string): string {
+  if (passed === "-") return "-";
+  if (typeof passed === "number" && passed > 0) return "+" + passed;
+  return String(passed);
+}
+
+// ─── Race View ──────────────────────────────────────────────────────────────
+
+function RaceView({ session }: { session: SessionData }) {
+  const fastestLapTime = session.fastestLap?.time || "";
+
+  return (
+    <div>
+      {/* Info Cards */}
+      <div className="jd-info-cards">
+        <div className="jd-info-card">
+          <div className="jd-info-card-label">Distance</div>
+          <div className="jd-info-card-value">{session.distance ? `${session.distance} km` : "-"}</div>
+          <div className="jd-info-card-sub">{session.laps ? `${session.laps} Laps` : "-"}</div>
+        </div>
+        <div className="jd-info-card">
+          <div className="jd-info-card-label">Wind Speed</div>
+          <div className="jd-info-card-value">{session.wind ? `${session.wind} Kph` : "-"}</div>
+          <div className="jd-info-card-sub">Conditions</div>
+        </div>
+        <div className="jd-info-card fastest">
+          <div className="jd-info-card-label">Fastest Lap</div>
+          <div className="jd-info-card-value">{session.fastestLap?.time || "-"}</div>
+          <div className="jd-info-card-sub">
+            {session.fastestLap ? `${session.fastestLap.pilot} \u2022 Lap ${session.fastestLap.lap}` : "-"}
+          </div>
+        </div>
+        <div className="jd-info-card">
+          <div className="jd-info-card-label">Top Speed</div>
+          <div className="jd-info-card-value">{session.fastestLap ? `${session.fastestLap.kph} KPH` : "-"}</div>
+          <div className="jd-info-card-sub">Maximum</div>
+        </div>
+      </div>
+
+      {/* Penalties */}
+      {session.penalties.length > 0 && (
+        <div className="jd-penalties-bar">
+          {session.penalties.map((p, i) => (
+            <div key={i} className="jd-penalty-item">
+              <span className="jd-penalty-icon">&#9888;</span>
+              {p}
+            </div>
+          ))}
+        </div>
       )}
 
-      {/* Session Content */}
-      {activeSession && (
-        <SessionView session={activeSession} />
+      {/* Starting Grid */}
+      {session.grid.length > 0 && (
+        <div className="jd-section">
+          <div className="jd-section-header">
+            <span className="jd-section-title">Starting Grid</span>
+          </div>
+          <div className="jd-starting-grid">
+            {session.grid.map((g, i) => (
+              <div key={i} className={`jd-grid-position ${i === 0 ? "pole" : ""}`}>
+                <div className="jd-grid-pos-number">{g.pos}</div>
+                <div className="jd-grid-team">{g.team}</div>
+                <div className="jd-grid-pilot">{g.pilot}</div>
+                <div className="jd-grid-number">#{g.no}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Race Results */}
+      {session.results.length > 0 && (
+        <div className="jd-section">
+          <div className="jd-section-header">
+            <span className="jd-section-title">Race Results</span>
+          </div>
+          <table className="jd-results-table">
+            <thead>
+              <tr>
+                <th>Pos</th>
+                <th>Driver</th>
+                <th className="center">Grid</th>
+                <th className="center">SL</th>
+                <th className="center">LL</th>
+                <th className="center">Pos +/-</th>
+                <th>Time</th>
+                <th>Gap</th>
+                <th className="center">KPH</th>
+                <th>Best Lap</th>
+                <th>Notes</th>
+              </tr>
+            </thead>
+            <tbody>
+              {session.results.map((r, i) => (
+                <tr key={i} className={i === 0 ? "winner" : ""}>
+                  <td className={`jd-pos-cell ${r.pos === 1 ? "jd-pos-1" : r.pos === 2 ? "jd-pos-2" : r.pos === 3 ? "jd-pos-3" : ""}`}>
+                    {r.pos}
+                  </td>
+                  <td>
+                    <div className="jd-driver-cell">
+                      <span className="jd-driver-number">{r.no}</span>
+                      <div className="jd-driver-info">
+                        <span className="jd-driver-name">{r.pilot}</span>
+                        <span className="jd-driver-team">{r.team}</span>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="jd-lap-cell">{r.start}</td>
+                  <td className={`jd-lap-cell ${r.sl !== "-" && r.sl !== "" ? "sl" : ""}`}>{r.sl}</td>
+                  <td className={`jd-lap-cell ${r.ll !== "-" && r.ll !== "" ? "ll" : ""}`}>{r.ll}</td>
+                  <td className={`jd-passed-cell ${getPassedClass(r.passed)}`}>{formatPassed(r.passed)}</td>
+                  <td className="jd-time-cell">{r.time}</td>
+                  <td className={`jd-gap-cell ${r.gap === "-" || !r.gap ? "leader" : ""}`}>
+                    {r.gap === "-" || !r.gap ? "LEADER" : r.gap}
+                  </td>
+                  <td className="jd-speed-cell">{r.kph}</td>
+                  <td className={`jd-best-lap-cell ${r.bestLap === fastestLapTime ? "fastest" : ""}`}>
+                    {r.bestLap}{r.bestLapNo !== "-" ? <span style={{ color: "#666" }}> (L{r.bestLapNo})</span> : ""}
+                  </td>
+                  <td className="jd-note-cell">{r.note}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <div className="jd-legend">
+            <div className="jd-legend-item">
+              <div className="jd-legend-color sl" />
+              <span>SL = Short Lap</span>
+            </div>
+            <div className="jd-legend-item">
+              <div className="jd-legend-color ll" />
+              <span>LL = Long Lap</span>
+            </div>
+            <div className="jd-legend-item">
+              <span className="jd-legend-indicator passed-positive">+N</span>
+              <span>Positions Gained</span>
+            </div>
+            <div className="jd-legend-item">
+              <span className="jd-legend-indicator passed-negative">-N</span>
+              <span>Positions Lost</span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* No results fallback */}
+      {session.results.length === 0 && (
+        <div className="jd-section">
+          <div className="jd-section-header">
+            <span className="jd-section-title">Race Results</span>
+          </div>
+          <div style={{ padding: "40px 20px", textAlign: "center", color: "#666" }}>
+            Detailed results were not extracted from the PDF for this session.
+            {session.fastestLap && (
+              <div style={{ marginTop: "16px" }}>
+                <span style={{ color: "#888" }}>Fastest lap by </span>
+                <span style={{ fontWeight: 600, color: "var(--jd-text-primary)" }}>{session.fastestLap.pilot}</span>
+                <span style={{ color: "#888" }}> &mdash; </span>
+                <span style={{ fontFamily: "var(--jd-font-numbers)", fontWeight: 700, color: "var(--jd-accent-purple)" }}>{session.fastestLap.time}</span>
+              </div>
+            )}
+          </div>
+        </div>
       )}
     </div>
   );
@@ -272,465 +627,469 @@ export default function RaceDashboard() {
 // ─── Championship View ──────────────────────────────────────────────────────
 
 function ChampionshipView({ standings }: { standings: ChampionshipDoc["standings"] }) {
-  const maxPts = Math.max(...standings.map((s) => s.points));
+  const maxPts = Math.max(...standings.map(s => s.points));
+
   return (
-    <div>
-      <h2 className="font-display text-lg font-bold tracking-wider text-[var(--accent-gold)] mb-4">CHAMPIONSHIP STANDINGS</h2>
-      <div className="bg-[var(--bg-card)] rounded-xl border border-[var(--border-color)] overflow-hidden">
-        <table className="w-full race-table">
-          <thead>
-            <tr className="border-b border-[var(--border-color)]">
-              <th className="text-left px-4 py-3 text-xs text-[var(--text-muted)] uppercase tracking-wider font-semibold w-16">Pos</th>
-              <th className="text-left px-4 py-3 text-xs text-[var(--text-muted)] uppercase tracking-wider font-semibold">Team</th>
-              <th className="text-right px-4 py-3 text-xs text-[var(--text-muted)] uppercase tracking-wider font-semibold w-20">Points</th>
-              <th className="px-4 py-3 text-xs text-[var(--text-muted)] uppercase tracking-wider font-semibold w-1/3"></th>
-            </tr>
-          </thead>
-          <tbody>
-            {standings.map((s) => (
-              <tr key={s.pos} className={`border-b border-[var(--border-color)]/30 ${isTBR(s.team) ? "bg-[rgba(0,71,255,0.1)]" : ""}`}>
-                <td className="px-4 py-3">
-                  <span className={`font-numbers font-bold text-lg ${s.pos <= 3 ? "text-[var(--accent-gold)]" : "text-[var(--text-secondary)]"}`}>
-                    {s.pos}
-                  </span>
-                </td>
-                <td className="px-4 py-3">
-                  <span className={`font-semibold ${isTBR(s.team) ? "text-[#0047FF]" : "text-white"}`}>{s.team}</span>
-                </td>
-                <td className="text-right px-4 py-3">
-                  <span className="font-numbers font-bold text-lg">{s.points}</span>
-                </td>
-                <td className="px-4 py-3">
-                  <div className="h-2 bg-[var(--bg-secondary)] rounded-full overflow-hidden">
-                    <div
-                      className="h-full rounded-full transition-all"
-                      style={{
-                        width: `${(s.points / maxPts) * 100}%`,
-                        backgroundColor: getTeamColor(s.team),
-                      }}
-                    />
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+    <div className="jd-section">
+      <div className="jd-section-header">
+        <span className="jd-section-title">Championship Standings</span>
       </div>
+      <table className="jd-championship-table">
+        <thead>
+          <tr>
+            <th style={{ width: "60px" }}>Pos</th>
+            <th>Team</th>
+            <th style={{ width: "80px", textAlign: "right" }}>Points</th>
+            <th style={{ width: "33%" }}></th>
+          </tr>
+        </thead>
+        <tbody>
+          {standings.map(s => (
+            <tr key={s.pos}>
+              <td>
+                <span style={{
+                  fontFamily: "var(--jd-font-numbers)",
+                  fontWeight: 700,
+                  fontSize: "1.1rem",
+                  color: s.pos <= 3 ? "var(--jd-accent-gold)" : "var(--jd-text-secondary)",
+                }}>
+                  {s.pos}
+                </span>
+              </td>
+              <td style={{ fontWeight: 600, color: "var(--jd-text-primary)" }}>{s.team}</td>
+              <td style={{ textAlign: "right", fontFamily: "var(--jd-font-numbers)", fontWeight: 700, fontSize: "1.1rem" }}>
+                {s.points}
+              </td>
+              <td>
+                <div style={{ height: "8px", background: "var(--jd-border-dark)", borderRadius: "4px", overflow: "hidden" }}>
+                  <div style={{
+                    height: "100%",
+                    width: `${(s.points / maxPts) * 100}%`,
+                    background: "linear-gradient(90deg, var(--jd-accent-cyan), var(--jd-accent-green))",
+                    borderRadius: "4px",
+                    transition: "width 0.5s ease",
+                  }} />
+                </div>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }
 
-// ─── Session View ───────────────────────────────────────────────────────────
+// ─── Summary View ───────────────────────────────────────────────────────────
 
-function SessionView({ session }: { session: SessionTab }) {
-  const { classification, analysis, grid } = session;
-  const hasResults = classification && classification.results.length > 0;
-  const hasAnalysis = analysis && analysis.teams.length > 0;
-  const hasGrid = grid && grid.grid.length > 0;
+interface SummaryViewProps {
+  sessions: SessionData[];
+  totalPenalties: number;
+  uniqueTeamCount: number;
+  overallFastestLap: string;
+  hasResultData: boolean;
+  positionGains: {
+    pilotGains: Record<string, { total: number; team: string; penalties: number; breakdown: { race: string; gained: number | string; start: number | string; finish: number | string; penalty: string | null }[] }>;
+    teamGains: Record<string, { total: number; penalties: number; breakdown: { race: string; pilot: string; gained: number | string; start: number | string; finish: number | string; penalty: string | null }[]; pilots: Record<string, { total: number; penalties: number }> }>;
+  };
+  raceWinners: { race: string; team: string; pilot: string; sl: string; ll: string; start: number | string }[];
+  biggestGainers: { race: string; pilot: string; team: string; start: number; finish: number; gained: number; sl: string; ll: string }[];
+  fastestLaps: { race: string; pilot: string; time: string; lap: number; kph: number }[];
+  gainsView: "pilot" | "team";
+  setGainsView: (v: "pilot" | "team") => void;
+  expandedBreakdowns: Set<string>;
+  toggleBreakdown: (id: string) => void;
+}
+
+function SummaryView({
+  sessions, totalPenalties, uniqueTeamCount, overallFastestLap, hasResultData,
+  positionGains, raceWinners, biggestGainers, fastestLaps,
+  gainsView, setGainsView, expandedBreakdowns, toggleBreakdown,
+}: SummaryViewProps) {
+  const gainers = biggestGainers.filter(g => g.gained > 0).slice(0, 5);
+  const losers = [...biggestGainers].reverse().filter(g => g.gained < 0).slice(0, 5);
+  const toLapNumbers = (value: string) =>
+    value
+      .split(",")
+      .map((lap) => Number.parseInt(lap, 10))
+      .filter((lap) => Number.isFinite(lap));
+
+  const slLap2Wins = raceWinners.filter((winner) => toLapNumbers(winner.sl).includes(2)).length;
+  const llLate = raceWinners.filter(w => {
+    return toLapNumbers(w.ll).some((lap) => lap >= 5);
+  }).length;
 
   return (
-    <div className="space-y-6">
-      {/* Session Info Bar */}
-      <div className="flex flex-wrap gap-4 items-center">
-        {classification?.laps && (
-          <InfoPill label="Laps" value={String(classification.laps)} color="cyan" />
-        )}
-        {classification?.distance && (
-          <InfoPill label="Distance" value={`${classification.distance} km`} color="green" />
-        )}
-        {classification?.wind && (
-          <InfoPill label="Wind" value={`${classification.wind} kts`} color="purple" />
-        )}
-        {classification?.date && (
-          <InfoPill label="Date" value={classification.date} color="orange" />
-        )}
-        {classification?.fastest_lap && (
-          <div className="bg-[rgba(255,0,64,0.1)] border border-[rgba(255,0,64,0.3)] rounded-lg px-4 py-2 flex items-center gap-3">
-            <span className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider">Fastest Lap</span>
-            <span className="font-numbers font-bold text-[var(--accent-red)]">{classification.fastest_lap.time}</span>
-            <span className="text-xs text-[var(--text-secondary)]">{classification.fastest_lap.pilot}</span>
-            <span className="text-xs text-[var(--text-muted)]">Lap {classification.fastest_lap.lap} &middot; {classification.fastest_lap.kph} km/h</span>
-          </div>
-        )}
+    <div>
+      {/* Summary Cards */}
+      <div className="jd-summary-grid">
+        <div className="jd-summary-card blue">
+          <div className="jd-summary-value">{sessions.length}</div>
+          <div className="jd-summary-label">Sessions Tracked</div>
+        </div>
+        <div className="jd-summary-card green">
+          <div className="jd-summary-value">{uniqueTeamCount}</div>
+          <div className="jd-summary-label">Teams Competed</div>
+        </div>
+        <div className="jd-summary-card purple">
+          <div className="jd-summary-value">{overallFastestLap}</div>
+          <div className="jd-summary-label">Fastest Lap</div>
+        </div>
+        <div className="jd-summary-card orange">
+          <div className="jd-summary-value">{totalPenalties}</div>
+          <div className="jd-summary-label">Penalties Issued</div>
+        </div>
       </div>
 
-      {/* Results Table */}
-      {hasResults && <ResultsTable results={classification!.results} grid={grid} />}
-
-      {/* Grid (if no results but grid exists) */}
-      {!hasResults && hasGrid && <GridView grid={grid!} />}
-
-      {/* No results message */}
-      {!hasResults && !hasGrid && classification && (
-        <div className="bg-[var(--bg-card)] rounded-xl border border-[var(--border-color)] p-8 text-center">
-          <div className="text-[var(--text-muted)] text-sm">
-            Session metadata available but detailed results were not extracted from the PDF.
+      {!hasResultData && (
+        <div className="jd-section">
+          <div className="jd-section-header">
+            <span className="jd-section-title">Coverage Note</span>
           </div>
-          {classification.fastest_lap && (
-            <div className="mt-4">
-              <span className="text-xs text-[var(--text-muted)]">Fastest lap by </span>
-              <span className="font-semibold text-white">{classification.fastest_lap.pilot}</span>
-              <span className="text-xs text-[var(--text-muted)]"> — </span>
-              <span className="font-numbers font-bold text-[var(--accent-red)]">{classification.fastest_lap.time}</span>
-            </div>
-          )}
+          <div style={{ padding: "20px", color: "var(--jd-text-secondary)", lineHeight: 1.6 }}>
+            Detailed finishing orders were not extracted for this weekend, so summary views are using available
+            session, grid, fastest-lap, and championship data instead of full race-result sheets.
+          </div>
         </div>
       )}
 
-      {/* Lap Analysis */}
-      {hasAnalysis && <LapAnalysis analysis={analysis!} />}
-
-      {/* Position Gains (if results + grid both have data) */}
-      {hasResults && hasGrid && <PositionGains results={classification!.results} grid={grid!} />}
-    </div>
-  );
-}
-
-// ─── Info Pill ──────────────────────────────────────────────────────────────
-
-function InfoPill({ label, value, color }: { label: string; value: string; color: string }) {
-  const colors: Record<string, string> = {
-    cyan: "bg-[rgba(0,212,255,0.1)] border-[rgba(0,212,255,0.3)] text-[var(--accent-cyan)]",
-    green: "bg-[rgba(0,255,136,0.1)] border-[rgba(0,255,136,0.3)] text-[var(--accent-green)]",
-    purple: "bg-[rgba(168,85,247,0.1)] border-[rgba(168,85,247,0.3)] text-[var(--accent-purple)]",
-    orange: "bg-[rgba(255,136,0,0.1)] border-[rgba(255,136,0,0.3)] text-[var(--accent-orange)]",
-    red: "bg-[rgba(255,0,64,0.1)] border-[rgba(255,0,64,0.3)] text-[var(--accent-red)]",
-  };
-  return (
-    <div className={`rounded-lg px-3 py-2 border ${colors[color] || colors.cyan}`}>
-      <span className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider mr-2">{label}</span>
-      <span className="font-numbers font-bold text-sm">{value}</span>
-    </div>
-  );
-}
-
-// ─── Results Table ──────────────────────────────────────────────────────────
-
-function ResultsTable({ results, grid }: { results: RaceResult[]; grid: GridDoc | null }) {
-  // Build grid lookup for position change
-  const gridMap = new Map<string, number>();
-  if (grid?.grid) {
-    for (const g of grid.grid) {
-      gridMap.set(g.no, g.pos);
-    }
-  }
-
-  return (
-    <div>
-      <h3 className="font-display text-sm font-bold tracking-wider text-[var(--accent-cyan)] mb-3 uppercase">Classification</h3>
-      <div className="bg-[var(--bg-card)] rounded-xl border border-[var(--border-color)] overflow-x-auto">
-        <table className="w-full race-table text-sm">
-          <thead>
-            <tr className="border-b border-[var(--border-color)]">
-              <th className="text-left px-3 py-3 text-[10px] text-[var(--text-muted)] uppercase tracking-wider font-semibold w-12">Pos</th>
-              <th className="text-left px-3 py-3 text-[10px] text-[var(--text-muted)] uppercase tracking-wider font-semibold w-12">No</th>
-              <th className="text-left px-3 py-3 text-[10px] text-[var(--text-muted)] uppercase tracking-wider font-semibold">Pilot</th>
-              <th className="text-left px-3 py-3 text-[10px] text-[var(--text-muted)] uppercase tracking-wider font-semibold">Team</th>
-              <th className="text-right px-3 py-3 text-[10px] text-[var(--text-muted)] uppercase tracking-wider font-semibold w-16">Laps</th>
-              <th className="text-right px-3 py-3 text-[10px] text-[var(--text-muted)] uppercase tracking-wider font-semibold">Time</th>
-              <th className="text-right px-3 py-3 text-[10px] text-[var(--text-muted)] uppercase tracking-wider font-semibold">Gap</th>
-              <th className="text-right px-3 py-3 text-[10px] text-[var(--text-muted)] uppercase tracking-wider font-semibold w-16">km/h</th>
-              <th className="text-right px-3 py-3 text-[10px] text-[var(--text-muted)] uppercase tracking-wider font-semibold">Best Lap</th>
-              {gridMap.size > 0 && (
-                <th className="text-center px-3 py-3 text-[10px] text-[var(--text-muted)] uppercase tracking-wider font-semibold w-16">+/-</th>
-              )}
-            </tr>
-          </thead>
-          <tbody>
-            {results.map((r, i) => {
-              const gridPos = gridMap.get(r.no);
-              const posNum = typeof r.pos === "number" ? r.pos : null;
-              const gained = gridPos && posNum ? gridPos - posNum : null;
-              const tbr = isTBR(r.team);
-
-              return (
-                <tr key={i} className={`border-b border-[var(--border-color)]/20 ${tbr ? "bg-[rgba(0,71,255,0.08)]" : ""}`}>
-                  <td className="px-3 py-2.5">
-                    <span className={`font-numbers font-bold ${
-                      posNum === 1 ? "text-[var(--accent-gold)]" :
-                      posNum === 2 ? "text-[#C0C0C0]" :
-                      posNum === 3 ? "text-[#CD7F32]" :
-                      typeof r.pos === "string" ? "text-[var(--accent-red)]" :
-                      "text-white"
-                    }`}>
-                      {typeof r.pos === "string" ? r.pos : `P${r.pos}`}
-                    </span>
-                  </td>
-                  <td className="px-3 py-2.5 font-numbers text-[var(--text-secondary)]">{r.no}</td>
-                  <td className="px-3 py-2.5 font-semibold">{r.pilot}</td>
-                  <td className="px-3 py-2.5">
-                    <span className="flex items-center gap-2">
-                      <span className="w-2 h-2 rounded-full" style={{ backgroundColor: getTeamColor(r.team) }} />
-                      <span className={`text-xs ${tbr ? "text-[#4488ff] font-bold" : "text-[var(--text-secondary)]"}`}>{r.team}</span>
-                    </span>
-                  </td>
-                  <td className="text-right px-3 py-2.5 font-numbers text-[var(--text-secondary)]">{r.laps}</td>
-                  <td className="text-right px-3 py-2.5 font-numbers">{r.total_time || "-"}</td>
-                  <td className="text-right px-3 py-2.5 font-numbers text-[var(--text-muted)]">{r.gap || "-"}</td>
-                  <td className="text-right px-3 py-2.5 font-numbers text-[var(--text-secondary)]">{r.kph || "-"}</td>
-                  <td className="text-right px-3 py-2.5">
-                    {r.best_lap ? (
-                      <span className="font-numbers">
-                        <span className="text-[var(--accent-cyan)]">{r.best_lap.time}</span>
-                        <span className="text-[var(--text-muted)] text-[10px] ml-1">L{r.best_lap.lap}</span>
-                      </span>
-                    ) : "-"}
-                  </td>
-                  {gridMap.size > 0 && (
-                    <td className="text-center px-3 py-2.5">
-                      {gained !== null ? (
-                        <span className={`font-numbers font-bold text-xs px-2 py-0.5 rounded ${
-                          gained > 0 ? "bg-[rgba(0,255,136,0.15)] text-[var(--accent-green)]" :
-                          gained < 0 ? "bg-[rgba(255,0,64,0.15)] text-[var(--accent-red)]" :
-                          "text-[var(--text-muted)]"
-                        }`}>
-                          {gained > 0 ? `+${gained}` : gained === 0 ? "=" : String(gained)}
-                        </span>
-                      ) : "-"}
-                    </td>
-                  )}
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  );
-}
-
-// ─── Grid View ──────────────────────────────────────────────────────────────
-
-function GridView({ grid }: { grid: GridDoc }) {
-  return (
-    <div>
-      <h3 className="font-display text-sm font-bold tracking-wider text-[var(--accent-green)] mb-3 uppercase">Starting Grid</h3>
-      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
-        {grid.grid.map((g) => (
-          <div
-            key={g.pos}
-            className={`bg-[var(--bg-card)] border rounded-lg p-3 text-center ${
-              isTBR(g.team) ? "border-[#0047FF] bg-[rgba(0,71,255,0.1)]" : "border-[var(--border-color)]"
-            }`}
-          >
-            <div className="font-numbers text-2xl font-bold text-[var(--text-muted)]">P{g.pos}</div>
-            <div className="font-semibold text-sm mt-1 truncate">{g.pilot}</div>
-            <div className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider mt-0.5 truncate">{g.team}</div>
-            <div className="text-xs text-[var(--text-secondary)] mt-0.5">#{g.no}</div>
+      {hasResultData && (
+        <>
+          {/* Strategy Insights */}
+          <div className="jd-section">
+            <div className="jd-section-header">
+              <span className="jd-section-title">Strategy Insights</span>
+            </div>
+            <div style={{ padding: "20px" }}>
+              <div className="jd-insights-grid">
+                <div className="jd-insight-card green">
+                  <div className="jd-insight-title">Early Short Lap (Lap 2)</div>
+                  <div className="jd-insight-text">
+                    Correlates with best finishes - used by {slLap2Wins} race winner{slLap2Wins !== 1 ? "s" : ""}
+                  </div>
+                </div>
+                <div className="jd-insight-card blue">
+                  <div className="jd-insight-title">Late Long Lap (Lap 5-6)</div>
+                  <div className="jd-insight-text">
+                    Shows strong results - winning strategy in {llLate} race{llLate !== 1 ? "s" : ""}
+                  </div>
+                </div>
+                <div className="jd-insight-card red">
+                  <div className="jd-insight-title">Penalties Impact</div>
+                  <div className="jd-insight-text">
+                    {totalPenalties} penalt{totalPenalties !== 1 ? "ies" : "y"} issued across {sessions.length} sessions
+                  </div>
+                </div>
+                <div className="jd-insight-card purple">
+                  <div className="jd-insight-title">Position Gains</div>
+                  <div className="jd-insight-text">
+                    {gainers.length > 0
+                      ? `Biggest mover: ${gainers[0].pilot} gaining ${gainers[0].gained} positions in ${gainers[0].race}`
+                      : "No position changes recorded"}
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
-        ))}
-      </div>
-    </div>
-  );
-}
 
-// ─── Lap Analysis ───────────────────────────────────────────────────────────
+          {/* Position Gains Analysis */}
+          <div className="jd-section">
+            <div className="jd-section-header">
+              <span className="jd-section-title">Total Position Gains Analysis</span>
+              <div className="jd-view-toggle">
+                <button className={`jd-toggle-btn ${gainsView === "pilot" ? "active" : ""}`} onClick={() => setGainsView("pilot")}>By Pilot</button>
+                <button className={`jd-toggle-btn ${gainsView === "team" ? "active" : ""}`} onClick={() => setGainsView("team")}>By Team</button>
+              </div>
+            </div>
+            {gainsView === "pilot" ? (
+              <PilotGainsTable pilotGains={positionGains.pilotGains} expandedBreakdowns={expandedBreakdowns} toggleBreakdown={toggleBreakdown} />
+            ) : (
+              <TeamGainsTable teamGains={positionGains.teamGains} expandedBreakdowns={expandedBreakdowns} toggleBreakdown={toggleBreakdown} />
+            )}
+          </div>
+        </>
+      )}
 
-function LapAnalysis({ analysis }: { analysis: AnalysisDoc }) {
-  const [chartType, setChartType] = useState<"lapTimes" | "sectors">("lapTimes");
-  const teams = analysis.teams;
-
-  if (teams.length === 0) return null;
-
-  // Build lap time chart data
-  const maxLaps = Math.max(...teams.map((t) => t.laps.length));
-  const lapTimeData = [];
-  for (let i = 0; i < maxLaps; i++) {
-    const point: Record<string, number | string> = { lap: i + 1 };
-    for (const team of teams) {
-      if (team.laps[i]) {
-        const sec = timeToSeconds(team.laps[i].time);
-        if (sec !== null) {
-          point[team.team] = Math.round(sec * 1000) / 1000;
-        }
-      }
-    }
-    lapTimeData.push(point);
-  }
-
-  // Sector comparison data
-  const sectorData = teams
-    .filter((t) => t.laps.some((l) => l.sector1 !== null))
-    .map((t) => {
-      const validLaps = t.laps.filter((l) => l.sector1 !== null && l.sector2 !== null && l.sector3 !== null);
-      if (validLaps.length === 0) return null;
-      const bestS1 = Math.min(...validLaps.map((l) => l.sector1!));
-      const bestS2 = Math.min(...validLaps.map((l) => l.sector2!));
-      const bestS3 = Math.min(...validLaps.map((l) => l.sector3!));
-      return { team: t.team.length > 20 ? t.team.slice(0, 18) + ".." : t.team, S1: bestS1, S2: bestS2, S3: bestS3 };
-    })
-    .filter(Boolean);
-
-  return (
-    <div>
-      <div className="flex items-center gap-3 mb-3">
-        <h3 className="font-display text-sm font-bold tracking-wider text-[var(--accent-purple)] uppercase">Lap Analysis</h3>
-        <div className="flex gap-1">
-          <button
-            onClick={() => setChartType("lapTimes")}
-            className={`px-3 py-1 rounded text-[10px] font-semibold uppercase tracking-wider cursor-pointer transition-all ${
-              chartType === "lapTimes" ? "bg-[var(--accent-purple)] text-black" : "bg-[var(--bg-card)] text-[var(--text-muted)] border border-[var(--border-color)]"
-            }`}
-          >
-            Lap Times
-          </button>
-          {sectorData.length > 0 && (
-            <button
-              onClick={() => setChartType("sectors")}
-              className={`px-3 py-1 rounded text-[10px] font-semibold uppercase tracking-wider cursor-pointer transition-all ${
-                chartType === "sectors" ? "bg-[var(--accent-purple)] text-black" : "bg-[var(--bg-card)] text-[var(--text-muted)] border border-[var(--border-color)]"
-              }`}
-            >
-              Sectors
-            </button>
-          )}
+      {/* Race Winners */}
+      {hasResultData && raceWinners.length > 0 && (
+        <div className="jd-section">
+          <div className="jd-section-header">
+            <span className="jd-section-title">Race Winners</span>
+          </div>
+          <div className="jd-winners-grid">
+            {raceWinners.map((w, i) => (
+              <div key={i} className="jd-winner-card">
+                <div className="jd-winner-race">{w.race}</div>
+                <div className="jd-winner-team">{w.team}</div>
+                <div className="jd-winner-pilot">{w.pilot}</div>
+                <div className="jd-winner-strategy">
+                  SL:{w.sl}, LL:{w.ll}
+                  {typeof w.start === "number" && w.start > 3 ? ` (from P${w.start}!)` : ""}
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
-      <div className="bg-[var(--bg-card)] rounded-xl border border-[var(--border-color)] p-4">
-        {chartType === "lapTimes" && lapTimeData.length > 0 && (
-          <ResponsiveContainer width="100%" height={350}>
-            <LineChart data={lapTimeData} margin={{ top: 10, right: 30, left: 10, bottom: 10 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#333" />
-              <XAxis dataKey="lap" stroke="#666" tick={{ fill: "#888", fontSize: 11 }} label={{ value: "Lap", position: "insideBottom", offset: -5, fill: "#666" }} />
-              <YAxis stroke="#666" tick={{ fill: "#888", fontSize: 11 }} domain={["auto", "auto"]} label={{ value: "Time (s)", angle: -90, position: "insideLeft", fill: "#666" }} />
-              <Tooltip
-                contentStyle={{ backgroundColor: "#1e1e35", border: "1px solid #333", borderRadius: "8px", fontSize: "12px" }}
-                labelStyle={{ color: "#888" }}
-              />
-              <Legend wrapperStyle={{ fontSize: "11px" }} />
-              {teams.map((team) => (
-                <Line
-                  key={team.team}
-                  type="monotone"
-                  dataKey={team.team}
-                  stroke={getTeamColor(team.team)}
-                  strokeWidth={isTBR(team.team) ? 3 : 1.5}
-                  dot={{ r: isTBR(team.team) ? 4 : 2 }}
-                  connectNulls
-                />
-              ))}
-            </LineChart>
-          </ResponsiveContainer>
-        )}
-
-        {chartType === "sectors" && sectorData.length > 0 && (
-          <ResponsiveContainer width="100%" height={350}>
-            <BarChart data={sectorData} margin={{ top: 10, right: 30, left: 10, bottom: 40 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#333" />
-              <XAxis dataKey="team" stroke="#666" tick={{ fill: "#888", fontSize: 10 }} interval={0} />
-              <YAxis stroke="#666" tick={{ fill: "#888", fontSize: 11 }} label={{ value: "Time (s)", angle: -90, position: "insideLeft", fill: "#666" }} />
-              <Tooltip contentStyle={{ backgroundColor: "#1e1e35", border: "1px solid #333", borderRadius: "8px", fontSize: "12px" }} />
-              <Legend wrapperStyle={{ fontSize: "11px" }} />
-              <Bar dataKey="S1" fill="#00d4ff" name="Sector 1" />
-              <Bar dataKey="S2" fill="#00ff88" name="Sector 2" />
-              <Bar dataKey="S3" fill="#a855f7" name="Sector 3" />
-            </BarChart>
-          </ResponsiveContainer>
-        )}
-
-        {/* Lap Detail Table */}
-        <div className="mt-4 overflow-x-auto">
-          <table className="w-full race-table text-xs">
+      {/* Biggest Gainers */}
+      {hasResultData && gainers.length > 0 && (
+        <div className="jd-section">
+          <div className="jd-section-header">
+            <span className="jd-section-title">Biggest Position Gainers</span>
+          </div>
+          <table className="jd-data-table">
             <thead>
-              <tr className="border-b border-[var(--border-color)]">
-                <th className="text-left px-2 py-2 text-[10px] text-[var(--text-muted)] uppercase tracking-wider">Team</th>
-                <th className="text-left px-2 py-2 text-[10px] text-[var(--text-muted)] uppercase tracking-wider">Pilot(s)</th>
-                <th className="text-right px-2 py-2 text-[10px] text-[var(--text-muted)] uppercase tracking-wider">Laps</th>
-                <th className="text-right px-2 py-2 text-[10px] text-[var(--text-muted)] uppercase tracking-wider">Best Lap</th>
-                <th className="text-right px-2 py-2 text-[10px] text-[var(--text-muted)] uppercase tracking-wider">Best S1</th>
-                <th className="text-right px-2 py-2 text-[10px] text-[var(--text-muted)] uppercase tracking-wider">Best S2</th>
-                <th className="text-right px-2 py-2 text-[10px] text-[var(--text-muted)] uppercase tracking-wider">Best S3</th>
-                <th className="text-center px-2 py-2 text-[10px] text-[var(--text-muted)] uppercase tracking-wider">SL/LL</th>
+              <tr>
+                <th>Race</th>
+                <th>Driver</th>
+                <th>Team</th>
+                <th>Start &rarr; Finish</th>
+                <th>Gained</th>
+                <th>Strategy</th>
               </tr>
             </thead>
             <tbody>
-              {teams.map((t) => {
-                const bestLap = t.laps.length > 0 ? t.laps.reduce((best, l) => {
-                  const cur = timeToSeconds(l.time);
-                  const prev = timeToSeconds(best.time);
-                  return cur !== null && (prev === null || cur < prev) ? l : best;
-                }) : null;
-                const validSectorLaps = t.laps.filter((l) => l.sector1 !== null);
-                const bestS1 = validSectorLaps.length > 0 ? Math.min(...validSectorLaps.map((l) => l.sector1!)) : null;
-                const bestS2 = validSectorLaps.length > 0 ? Math.min(...validSectorLaps.filter((l) => l.sector2 !== null).map((l) => l.sector2!)) : null;
-                const bestS3 = validSectorLaps.length > 0 ? Math.min(...validSectorLaps.filter((l) => l.sector3 !== null).map((l) => l.sector3!)) : null;
-                const slCount = t.laps.filter((l) => l.marker === "SL").length;
-                const llCount = t.laps.filter((l) => l.marker === "LL").length;
-                const tbr = isTBR(t.team);
-
-                return (
-                  <tr key={t.team} className={`border-b border-[var(--border-color)]/20 ${tbr ? "bg-[rgba(0,71,255,0.08)]" : ""}`}>
-                    <td className="px-2 py-2">
-                      <span className="flex items-center gap-1.5">
-                        <span className="w-2 h-2 rounded-full" style={{ backgroundColor: getTeamColor(t.team) }} />
-                        <span className={`${tbr ? "text-[#4488ff] font-bold" : ""}`}>{t.team}</span>
-                      </span>
-                    </td>
-                    <td className="px-2 py-2 text-[var(--text-secondary)]">{t.pilots.join(", ")}</td>
-                    <td className="text-right px-2 py-2 font-numbers">{t.laps.length}</td>
-                    <td className="text-right px-2 py-2 font-numbers text-[var(--accent-cyan)]">{bestLap ? bestLap.time : "-"}</td>
-                    <td className="text-right px-2 py-2 font-numbers">{bestS1?.toFixed(3) || "-"}</td>
-                    <td className="text-right px-2 py-2 font-numbers">{bestS2?.toFixed(3) || "-"}</td>
-                    <td className="text-right px-2 py-2 font-numbers">{bestS3?.toFixed(3) || "-"}</td>
-                    <td className="text-center px-2 py-2">
-                      {slCount > 0 && <span className="text-[var(--accent-orange)] mr-1">SL:{slCount}</span>}
-                      {llCount > 0 && <span className="text-[var(--accent-red)]">LL:{llCount}</span>}
-                      {slCount === 0 && llCount === 0 && <span className="text-[var(--text-muted)]">-</span>}
-                    </td>
-                  </tr>
-                );
-              })}
+              {gainers.map((g, i) => (
+                <tr key={i}>
+                  <td>{g.race}</td>
+                  <td style={{ fontWeight: 600 }}>{g.pilot}</td>
+                  <td style={{ color: "var(--jd-accent-green)" }}>{g.team}</td>
+                  <td>P{g.start} &rarr; P{g.finish}</td>
+                  <td className="jd-position-change jd-passed-positive">+{g.gained}</td>
+                  <td className="jd-strategy-cell">SL: {g.sl}, LL: {g.ll}</td>
+                </tr>
+              ))}
             </tbody>
           </table>
         </div>
-      </div>
+      )}
+
+      {/* Biggest Losers */}
+      {hasResultData && losers.length > 0 && (
+        <div className="jd-section">
+          <div className="jd-section-header">
+            <span className="jd-section-title">Biggest Position Losers</span>
+          </div>
+          <table className="jd-data-table">
+            <thead>
+              <tr>
+                <th>Race</th>
+                <th>Driver</th>
+                <th>Team</th>
+                <th>Start &rarr; Finish</th>
+                <th>Lost</th>
+                <th>Strategy</th>
+              </tr>
+            </thead>
+            <tbody>
+              {losers.map((g, i) => (
+                <tr key={i}>
+                  <td>{g.race}</td>
+                  <td style={{ fontWeight: 600 }}>{g.pilot}</td>
+                  <td style={{ color: "var(--jd-accent-green)" }}>{g.team}</td>
+                  <td>P{g.start} &rarr; P{g.finish}</td>
+                  <td className="jd-position-change jd-passed-negative">{g.gained}</td>
+                  <td className="jd-strategy-cell">SL: {g.sl}, LL: {g.ll}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* Fastest Laps */}
+      {fastestLaps.length > 0 && (
+        <div className="jd-section">
+          <div className="jd-section-header">
+            <span className="jd-section-title">Fastest Laps by Race</span>
+          </div>
+          <table className="jd-data-table">
+            <thead>
+              <tr>
+                <th>Race</th>
+                <th>Driver</th>
+                <th>Time</th>
+                <th>Lap</th>
+                <th>Speed</th>
+              </tr>
+            </thead>
+            <tbody>
+              {fastestLaps.map((fl, i) => (
+                <tr key={i} className={i === 0 ? "jd-fastest-row" : ""}>
+                  <td style={{ fontWeight: 600 }}>{fl.race}</td>
+                  <td>{fl.pilot}</td>
+                  <td className={i === 0 ? "jd-fastest-time" : "jd-time-cell"}>{fl.time}</td>
+                  <td>{fl.lap}</td>
+                  <td style={{ color: "var(--jd-accent-cyan)" }}>{fl.kph} KPH</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 }
 
-// ─── Position Gains ─────────────────────────────────────────────────────────
+// ─── Pilot Gains Table ──────────────────────────────────────────────────────
 
-function PositionGains({ results, grid }: { results: RaceResult[]; grid: GridDoc }) {
-  const gridMap = new Map<string, number>();
-  for (const g of grid.grid) {
-    gridMap.set(g.no, g.pos);
-  }
-
-  const gains = results
-    .filter((r) => typeof r.pos === "number" && gridMap.has(r.no))
-    .map((r) => ({
-      pilot: r.pilot,
-      team: r.team,
-      start: gridMap.get(r.no)!,
-      finish: r.pos as number,
-      gained: gridMap.get(r.no)! - (r.pos as number),
-    }))
-    .sort((a, b) => b.gained - a.gained);
-
-  if (gains.length === 0) return null;
+function PilotGainsTable({
+  pilotGains, expandedBreakdowns, toggleBreakdown,
+}: {
+  pilotGains: Record<string, { total: number; team: string; penalties: number; breakdown: { race: string; gained: number | string; start: number | string; finish: number | string; penalty: string | null }[] }>;
+  expandedBreakdowns: Set<string>;
+  toggleBreakdown: (id: string) => void;
+}) {
+  const sorted = Object.entries(pilotGains).sort((a, b) => b[1].total - a[1].total);
 
   return (
-    <div>
-      <h3 className="font-display text-sm font-bold tracking-wider text-[var(--accent-green)] mb-3 uppercase">Position Changes</h3>
-      <div className="bg-[var(--bg-card)] rounded-xl border border-[var(--border-color)] p-4">
-        <ResponsiveContainer width="100%" height={Math.max(200, gains.length * 40)}>
-          <BarChart data={gains} layout="vertical" margin={{ top: 5, right: 30, left: 120, bottom: 5 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#333" horizontal={false} />
-            <XAxis type="number" stroke="#666" tick={{ fill: "#888", fontSize: 11 }} />
-            <YAxis type="category" dataKey="pilot" stroke="#666" tick={{ fill: "#ccc", fontSize: 11 }} width={110} />
-            <Tooltip
-              contentStyle={{ backgroundColor: "#1e1e35", border: "1px solid #333", borderRadius: "8px", fontSize: "12px" }}
-              formatter={(value) => [`${Number(value) > 0 ? "+" : ""}${value} positions`, "Gained"]}
-            />
-            <Bar dataKey="gained" radius={[0, 4, 4, 0]}>
-              {gains.map((g, i) => (
-                <Cell key={i} fill={g.gained > 0 ? "#00ff88" : g.gained < 0 ? "#ff0040" : "#666"} />
-              ))}
-            </Bar>
-          </BarChart>
-        </ResponsiveContainer>
-      </div>
-    </div>
+    <table className="jd-gains-table">
+      <thead>
+        <tr>
+          <th>Rank</th>
+          <th>Pilot</th>
+          <th>Team</th>
+          <th>Total +/-</th>
+          <th>Penalties</th>
+          <th>Races</th>
+          <th>Breakdown</th>
+        </tr>
+      </thead>
+      <tbody>
+        {sorted.map(([pilot, d], index) => {
+          const cls = d.total > 0 ? "positive" : d.total < 0 ? "negative" : "neutral";
+          const display = d.total > 0 ? `+${d.total}` : String(d.total);
+          const bid = `pilot-${index}`;
+          return (
+            <React.Fragment key={pilot}>
+              <tr>
+                <td>{index + 1}</td>
+                <td style={{ fontWeight: 600 }}>{pilot}</td>
+                <td style={{ color: "var(--jd-accent-cyan)" }}>{d.team}</td>
+                <td className={`jd-total-gains ${cls}`}>{display}</td>
+                <td>{d.penalties > 0 ? <span style={{ color: "var(--jd-accent-red)" }}>{d.penalties}</span> : "0"}</td>
+                <td>{d.breakdown.length}</td>
+                <td>
+                  <button type="button" className="jd-breakdown-toggle" onClick={() => toggleBreakdown(bid)}>
+                    &#128202; View
+                  </button>
+                </td>
+              </tr>
+              {expandedBreakdowns.has(bid) && (
+                <tr>
+                  <td colSpan={7} style={{ padding: 0 }}>
+                    <div className="jd-breakdown-content show">
+                      {d.breakdown.map((b, bi) => (
+                        <div key={bi}>
+                          <div className="jd-breakdown-item">
+                            <span>{b.race}{b.penalty ? " \u26A0\uFE0F" : ""}</span>
+                            <span>P{b.start} &rarr; P{b.finish}</span>
+                            <span className={typeof b.gained === "number" && b.gained > 0 ? "jd-passed-positive" : typeof b.gained === "number" && b.gained < 0 ? "jd-passed-negative" : ""}>
+                              {typeof b.gained === "number" && b.gained > 0 ? "+" + b.gained : String(b.gained)}
+                            </span>
+                          </div>
+                          {b.penalty && (
+                            <div className="jd-breakdown-item" style={{ color: "var(--jd-accent-red)", fontSize: "0.8rem", paddingLeft: "10px" }}>
+                              &#8629; {b.penalty}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </td>
+                </tr>
+              )}
+            </React.Fragment>
+          );
+        })}
+      </tbody>
+    </table>
+  );
+}
+
+// ─── Team Gains Table ───────────────────────────────────────────────────────
+
+function TeamGainsTable({
+  teamGains, expandedBreakdowns, toggleBreakdown,
+}: {
+  teamGains: Record<string, { total: number; penalties: number; breakdown: { race: string; pilot: string; gained: number | string; start: number | string; finish: number | string; penalty: string | null }[]; pilots: Record<string, { total: number; penalties: number }> }>;
+  expandedBreakdowns: Set<string>;
+  toggleBreakdown: (id: string) => void;
+}) {
+  const sorted = Object.entries(teamGains).sort((a, b) => b[1].total - a[1].total);
+
+  return (
+    <table className="jd-gains-table">
+      <thead>
+        <tr>
+          <th>Rank</th>
+          <th>Team</th>
+          <th>Total +/-</th>
+          <th>Penalties</th>
+          <th>Races</th>
+          <th>Breakdown</th>
+        </tr>
+      </thead>
+      <tbody>
+        {sorted.map(([team, d], index) => {
+          const cls = d.total > 0 ? "positive" : d.total < 0 ? "negative" : "neutral";
+          const display = d.total > 0 ? `+${d.total}` : String(d.total);
+          const bid = `team-${index}`;
+          return (
+            <React.Fragment key={team}>
+              <tr>
+                <td>{index + 1}</td>
+                <td style={{ fontWeight: 600, color: "var(--jd-accent-cyan)" }}>{team}</td>
+                <td className={`jd-total-gains ${cls}`}>{display}</td>
+                <td>{d.penalties > 0 ? <span style={{ color: "var(--jd-accent-red)" }}>{d.penalties}</span> : "0"}</td>
+                <td>{d.breakdown.length}</td>
+                <td>
+                  <button type="button" className="jd-breakdown-toggle" onClick={() => toggleBreakdown(bid)}>
+                    &#128202; View
+                  </button>
+                </td>
+              </tr>
+              {expandedBreakdowns.has(bid) && (
+                <tr>
+                  <td colSpan={6} style={{ padding: 0 }}>
+                    <div className="jd-breakdown-content show">
+                      <div style={{ marginBottom: "10px", fontWeight: 600, fontFamily: "'Poppins', sans-serif" }}>By Pilot:</div>
+                      {Object.entries(d.pilots).map(([pilot, pd]) => (
+                        <div key={pilot} className="jd-breakdown-item">
+                          <span>{pilot}{pd.penalties > 0 ? " \u26A0\uFE0F" : ""}</span>
+                          <span>
+                            <span className={pd.total > 0 ? "jd-passed-positive" : pd.total < 0 ? "jd-passed-negative" : ""}>
+                              {pd.total > 0 ? "+" + pd.total : pd.total}
+                            </span>
+                            {pd.penalties > 0 && <span style={{ color: "var(--jd-accent-red)", marginLeft: "10px" }}>({pd.penalties} penalty)</span>}
+                          </span>
+                        </div>
+                      ))}
+                      <div style={{ margin: "15px 0 10px 0", fontWeight: 600, borderTop: "1px solid var(--jd-border-color)", paddingTop: "10px", fontFamily: "'Poppins', sans-serif" }}>By Race:</div>
+                      {d.breakdown.map((b, bi) => (
+                        <div key={bi}>
+                          <div className="jd-breakdown-item">
+                            <span>{b.race} - {b.pilot}{b.penalty ? " \u26A0\uFE0F" : ""}</span>
+                            <span>P{b.start} &rarr; P{b.finish}</span>
+                            <span className={typeof b.gained === "number" && b.gained > 0 ? "jd-passed-positive" : typeof b.gained === "number" && b.gained < 0 ? "jd-passed-negative" : ""}>
+                              {typeof b.gained === "number" && b.gained > 0 ? "+" + b.gained : String(b.gained)}
+                            </span>
+                          </div>
+                          {b.penalty && (
+                            <div className="jd-breakdown-item" style={{ color: "var(--jd-accent-red)", fontSize: "0.8rem", paddingLeft: "10px" }}>
+                              &#8629; {b.penalty}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </td>
+                </tr>
+              )}
+            </React.Fragment>
+          );
+        })}
+      </tbody>
+    </table>
   );
 }

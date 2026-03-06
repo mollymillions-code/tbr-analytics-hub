@@ -1,28 +1,25 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import {
   AllData,
   ClassificationDoc,
   AnalysisDoc,
   ChampionshipDoc,
-  RaceResult,
-  TeamAnalysis,
 } from "@/lib/types";
 import { getAllData } from "@/lib/data";
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
   ResponsiveContainer, BarChart, Bar, Cell, PieChart, Pie,
-  RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis,
 } from "recharts";
-import { Search, Sparkles, BarChart3, FileText, Table2, ChevronRight, X } from "lucide-react";
+import { Search, Sparkles, ChevronRight, X } from "lucide-react";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
 interface AnalysisBlock {
   type: "text" | "chart" | "table" | "stat-grid" | "heading";
   content?: string;
-  chartType?: "bar" | "line" | "pie" | "radar";
+  chartType?: "bar" | "line" | "pie";
   chartData?: Record<string, unknown>[];
   chartConfig?: {
     xKey: string;
@@ -38,10 +35,47 @@ interface CanvasResult {
   blocks: AnalysisBlock[];
 }
 
+interface ClassificationEntry {
+  season: string;
+  race: string;
+  doc: ClassificationDoc;
+}
+
+interface AnalysisEntry {
+  season: string;
+  race: string;
+  doc: AnalysisDoc;
+}
+
+interface ChampionshipEntry {
+  season: string;
+  race: string;
+  doc: ChampionshipDoc;
+}
+
+interface FastestLapEntry {
+  season: string;
+  race: string;
+  session: string;
+  pilot: string;
+  time: string;
+  kph: number;
+  lap: number;
+  team: string | null;
+}
+
+interface AnalysisContext {
+  data: AllData;
+  allCls: ClassificationEntry[];
+  allAn: AnalysisEntry[];
+  allChamp: ChampionshipEntry[];
+  fastestLaps: FastestLapEntry[];
+}
+
 // ─── Data Helpers ───────────────────────────────────────────────────────────
 
 function getAllClassifications(data: AllData) {
-  const results: { season: string; race: string; doc: ClassificationDoc }[] = [];
+  const results: ClassificationEntry[] = [];
   for (const [season, sData] of Object.entries(data.seasons)) {
     for (const [race, rData] of Object.entries(sData.races)) {
       for (const docs of Object.values(rData.events)) {
@@ -57,7 +91,7 @@ function getAllClassifications(data: AllData) {
 }
 
 function getAllAnalyses(data: AllData) {
-  const results: { season: string; race: string; doc: AnalysisDoc }[] = [];
+  const results: AnalysisEntry[] = [];
   for (const [season, sData] of Object.entries(data.seasons)) {
     for (const [race, rData] of Object.entries(sData.races)) {
       for (const docs of Object.values(rData.events)) {
@@ -73,7 +107,7 @@ function getAllAnalyses(data: AllData) {
 }
 
 function getAllChampionships(data: AllData) {
-  const results: { season: string; race: string; doc: ChampionshipDoc }[] = [];
+  const results: ChampionshipEntry[] = [];
   for (const [season, sData] of Object.entries(data.seasons)) {
     for (const [race, rData] of Object.entries(sData.races)) {
       for (const docs of Object.values(rData.events)) {
@@ -96,13 +130,68 @@ function timeToSeconds(t: string | null): number | null {
   return +parts[0] || null;
 }
 
+function sortSeasonRaceEntries<T extends { season: string; race: string }>(entries: T[]): T[] {
+  return [...entries].sort((a, b) => {
+    const seasonYearA = Number(a.season.match(/(\d{4})/)?.[1] ?? 0);
+    const seasonYearB = Number(b.season.match(/(\d{4})/)?.[1] ?? 0);
+    if (seasonYearA !== seasonYearB) return seasonYearA - seasonYearB;
+
+    const seasonNumberA = Number(a.season.match(/Season (\d+)/)?.[1] ?? 0);
+    const seasonNumberB = Number(b.season.match(/Season (\d+)/)?.[1] ?? 0);
+    if (seasonNumberA !== seasonNumberB) return seasonNumberA - seasonNumberB;
+
+    const raceNumberA = Number(a.race.match(/R(\d+)/)?.[1] ?? 0);
+    const raceNumberB = Number(b.race.match(/R(\d+)/)?.[1] ?? 0);
+    return raceNumberA - raceNumberB;
+  });
+}
+
+function getTeamFilterName(teamFilter?: string): string | null {
+  if (!teamFilter) return null;
+  return teamFilter === "tbr" ? "blue rising" : teamFilter;
+}
+
+function getFastestLapEntries(allCls: ClassificationEntry[]): FastestLapEntry[] {
+  const fastestLaps: FastestLapEntry[] = [];
+
+  for (const { season, race, doc } of allCls) {
+    if (!doc.fastest_lap?.pilot) continue;
+
+    const matchingResult = doc.results.find((result) => result.pilot === doc.fastest_lap?.pilot);
+    fastestLaps.push({
+      season,
+      race,
+      session: doc.session,
+      pilot: doc.fastest_lap.pilot,
+      time: doc.fastest_lap.time,
+      kph: doc.fastest_lap.kph,
+      lap: doc.fastest_lap.lap,
+      team: matchingResult?.team ?? null,
+    });
+  }
+
+  return fastestLaps;
+}
+
+function buildAnalysisContext(data: AllData): AnalysisContext {
+  const allCls = sortSeasonRaceEntries(getAllClassifications(data));
+  const allAn = sortSeasonRaceEntries(getAllAnalyses(data));
+  const allChamp = sortSeasonRaceEntries(getAllChampionships(data));
+
+  return {
+    data,
+    allCls,
+    allAn,
+    allChamp,
+    fastestLaps: getFastestLapEntries(allCls),
+  };
+}
+
 // ─── Analysis Engine ────────────────────────────────────────────────────────
 
-function analyzeQuery(query: string, data: AllData): CanvasResult {
+function analyzeQuery(query: string, context: AnalysisContext): CanvasResult {
   const q = query.toLowerCase();
-  const allCls = getAllClassifications(data);
-  const allAn = getAllAnalyses(data);
-  const allChamp = getAllChampionships(data);
+  const { data, allCls, allAn, allChamp, fastestLaps } = context;
 
   // Detect team/pilot names
   const teamKeywords = [
@@ -121,11 +210,11 @@ function analyzeQuery(query: string, data: AllData): CanvasResult {
   const isAboutPilot = q.includes("pilot") || q.includes("driver");
 
   // Route to specific analysis
-  if (isAboutChampionship) return analyzeChampionship(data, allChamp, matchedTeam);
-  if (isAboutMistakes && matchedTeam) return analyzeMistakes(data, allAn, allCls, matchedTeam);
-  if (isAboutFastestLaps) return analyzeFastestLaps(data, allCls, allAn, matchedTeam);
-  if (isAboutSectors) return analyzeSectors(data, allAn, matchedTeam);
-  if (matchedTeam) return analyzeTeam(data, allCls, allAn, allChamp, matchedTeam);
+  if (isAboutChampionship) return analyzeChampionship(allChamp, matchedTeam);
+  if (isAboutMistakes && matchedTeam) return analyzeMistakes(allAn, allCls, matchedTeam);
+  if (isAboutFastestLaps) return analyzeFastestLaps(allAn, fastestLaps, matchedTeam);
+  if (isAboutSectors) return analyzeSectors(allAn, matchedTeam);
+  if (matchedTeam) return analyzeTeam(allCls, allAn, allChamp, matchedTeam);
   if (isAboutOverview || isAboutComparison) return analyzeOverview(data, allCls, allAn, allChamp);
   if (isAboutPilot) return analyzePilots(data, allCls, allAn);
 
@@ -134,8 +223,7 @@ function analyzeQuery(query: string, data: AllData): CanvasResult {
 }
 
 function analyzeChampionship(
-  data: AllData,
-  allChamp: { season: string; race: string; doc: ChampionshipDoc }[],
+  allChamp: ChampionshipEntry[],
   teamFilter?: string
 ): CanvasResult {
   const blocks: AnalysisBlock[] = [];
@@ -172,7 +260,8 @@ function analyzeChampionship(
     });
 
     if (teamFilter) {
-      const tbrStanding = doc.standings.find((s) => s.team.toLowerCase().includes(teamFilter === "tbr" ? "blue rising" : teamFilter));
+      const filterName = getTeamFilterName(teamFilter)!;
+      const tbrStanding = doc.standings.find((s) => s.team.toLowerCase().includes(filterName));
       if (tbrStanding) {
         const leader = doc.standings[0];
         blocks.push({
@@ -192,13 +281,12 @@ function analyzeChampionship(
 }
 
 function analyzeMistakes(
-  _data: AllData,
-  allAn: { season: string; race: string; doc: AnalysisDoc }[],
-  allCls: { season: string; race: string; doc: ClassificationDoc }[],
+  allAn: AnalysisEntry[],
+  allCls: ClassificationEntry[],
   teamFilter: string
 ): CanvasResult {
   const blocks: AnalysisBlock[] = [];
-  const filterName = teamFilter === "tbr" ? "blue rising" : teamFilter;
+  const filterName = getTeamFilterName(teamFilter)!;
 
   blocks.push({ type: "heading", content: `Mistake & Penalty Analysis` });
 
@@ -290,27 +378,12 @@ function analyzeMistakes(
 }
 
 function analyzeFastestLaps(
-  _data: AllData,
-  allCls: { season: string; race: string; doc: ClassificationDoc }[],
-  allAn: { season: string; race: string; doc: AnalysisDoc }[],
+  allAn: AnalysisEntry[],
+  fastestLaps: FastestLapEntry[],
   teamFilter?: string
 ): CanvasResult {
   const blocks: AnalysisBlock[] = [];
   blocks.push({ type: "heading", content: "Fastest Lap Analysis" });
-
-  // Collect all fastest laps from classifications
-  const fastestLaps: { season: string; race: string; session: string; pilot: string; time: string; kph: number; lap: number }[] = [];
-  for (const { season, race, doc } of allCls) {
-    if (doc.fastest_lap?.pilot) {
-      fastestLaps.push({
-        season, race, session: doc.session,
-        pilot: doc.fastest_lap.pilot,
-        time: doc.fastest_lap.time,
-        kph: doc.fastest_lap.kph,
-        lap: doc.fastest_lap.lap,
-      });
-    }
-  }
 
   // Count fastest laps by pilot
   const pilotCounts = new Map<string, number>();
@@ -369,10 +442,16 @@ function analyzeFastestLaps(
   }
 
   if (teamFilter) {
-    const filterName = teamFilter === "tbr" ? "blue rising" : teamFilter;
-    const teamFLs = fastestLaps.filter((fl) => fl.pilot.toLowerCase().includes(filterName));
+    const filterName = getTeamFilterName(teamFilter)!;
+    const teamFLs = fastestLaps.filter((fastestLap) => fastestLap.team?.toLowerCase().includes(filterName));
     if (teamFLs.length > 0) {
-      blocks.push({ type: "text", content: `**${teamFilter.toUpperCase()}** has set **${teamFLs.length}** fastest laps across all sessions.` });
+      const bestLap = [...teamFLs].sort(
+        (a, b) => (timeToSeconds(a.time) ?? Number.POSITIVE_INFINITY) - (timeToSeconds(b.time) ?? Number.POSITIVE_INFINITY)
+      )[0];
+      blocks.push({
+        type: "text",
+        content: `**${teamFilter.toUpperCase()}** has set **${teamFLs.length}** fastest laps across sessions${bestLap ? `, with a best of **${bestLap.time}** in **${bestLap.race} ${bestLap.session}**.` : "."}`,
+      });
     }
   }
 
@@ -380,17 +459,18 @@ function analyzeFastestLaps(
 }
 
 function analyzeSectors(
-  _data: AllData,
-  allAn: { season: string; race: string; doc: AnalysisDoc }[],
+  allAn: AnalysisEntry[],
   teamFilter?: string
 ): CanvasResult {
   const blocks: AnalysisBlock[] = [];
-  blocks.push({ type: "heading", content: "Sector Performance Analysis" });
+  const filterName = getTeamFilterName(teamFilter);
+  blocks.push({ type: "heading", content: filterName ? `${teamFilter?.toUpperCase()} Sector Performance` : "Sector Performance Analysis" });
 
   // Aggregate best sectors by team
   const teamSectors = new Map<string, { bestS1: number; bestS2: number; bestS3: number; count: number }>();
   for (const { doc } of allAn) {
     for (const team of doc.teams) {
+      if (filterName && !team.team.toLowerCase().includes(filterName)) continue;
       const validLaps = team.laps.filter((l) => l.sector1 !== null && l.sector2 !== null && l.sector3 !== null);
       if (validLaps.length === 0) continue;
       const bestS1 = Math.min(...validLaps.map((l) => l.sector1!));
@@ -411,18 +491,16 @@ function analyzeSectors(
   }
 
   if (teamSectors.size === 0) {
-    blocks.push({ type: "text", content: "No sector data available in the current dataset. Sector analysis requires detailed lap analysis PDFs." });
+    blocks.push({
+      type: "text",
+      content: filterName
+        ? "No sector data matched that team in the current dataset."
+        : "No sector data available in the current dataset. Sector analysis requires detailed lap analysis PDFs.",
+    });
     return { title: "Sector Analysis", blocks };
   }
 
   const sorted = [...teamSectors.entries()].sort((a, b) => (a[1].bestS1 + a[1].bestS2 + a[1].bestS3) - (b[1].bestS1 + b[1].bestS2 + b[1].bestS3));
-
-  // Radar chart for top teams
-  const radarData = [
-    { sector: "Sector 1", ...Object.fromEntries(sorted.slice(0, 6).map(([t, d]) => [t.length > 12 ? t.slice(0, 10) + ".." : t, d.bestS1])) },
-    { sector: "Sector 2", ...Object.fromEntries(sorted.slice(0, 6).map(([t, d]) => [t.length > 12 ? t.slice(0, 10) + ".." : t, d.bestS2])) },
-    { sector: "Sector 3", ...Object.fromEntries(sorted.slice(0, 6).map(([t, d]) => [t.length > 12 ? t.slice(0, 10) + ".." : t, d.bestS3])) },
-  ];
 
   blocks.push({
     type: "chart",
@@ -473,14 +551,13 @@ function analyzeSectors(
 }
 
 function analyzeTeam(
-  data: AllData,
-  allCls: { season: string; race: string; doc: ClassificationDoc }[],
-  allAn: { season: string; race: string; doc: AnalysisDoc }[],
-  allChamp: { season: string; race: string; doc: ChampionshipDoc }[],
+  allCls: ClassificationEntry[],
+  allAn: AnalysisEntry[],
+  allChamp: ChampionshipEntry[],
   teamFilter: string
 ): CanvasResult {
   const blocks: AnalysisBlock[] = [];
-  const filterName = teamFilter === "tbr" ? "blue rising" : teamFilter;
+  const filterName = getTeamFilterName(teamFilter)!;
   const displayName = teamFilter === "tbr" ? "Team Blue Rising" : teamFilter.charAt(0).toUpperCase() + teamFilter.slice(1);
 
   blocks.push({ type: "heading", content: `${displayName} — Full Team Report` });
@@ -514,7 +591,7 @@ function analyzeTeam(
     });
 
     // Position chart
-    const posData = results.filter((r) => typeof r.pos === "number").map((r, i) => ({
+    const posData = results.filter((r) => typeof r.pos === "number").map((r) => ({
       race: `${r.session.slice(0, 15)}`,
       position: r.pos as number,
     }));
@@ -614,8 +691,8 @@ function analyzeTeam(
 
 function analyzePilots(
   _data: AllData,
-  allCls: { season: string; race: string; doc: ClassificationDoc }[],
-  allAn: { season: string; race: string; doc: AnalysisDoc }[]
+  allCls: ClassificationEntry[],
+  allAn: AnalysisEntry[]
 ): CanvasResult {
   const blocks: AnalysisBlock[] = [];
   blocks.push({ type: "heading", content: "Pilot Leaderboard" });
@@ -668,9 +745,9 @@ function analyzePilots(
 
 function analyzeOverview(
   data: AllData,
-  allCls: { season: string; race: string; doc: ClassificationDoc }[],
-  allAn: { season: string; race: string; doc: AnalysisDoc }[],
-  allChamp: { season: string; race: string; doc: ChampionshipDoc }[]
+  allCls: ClassificationEntry[],
+  allAn: AnalysisEntry[],
+  allChamp: ChampionshipEntry[]
 ): CanvasResult {
   const blocks: AnalysisBlock[] = [];
   blocks.push({ type: "heading", content: "E1 Championship Overview" });
@@ -805,6 +882,23 @@ function ChartBlock({ block }: { block: AnalysisBlock }) {
   return null;
 }
 
+function renderTextContent(content: string) {
+  return content
+    .split(/(\*\*.*?\*\*)/g)
+    .filter(Boolean)
+    .map((segment, index) => {
+      if (segment.startsWith("**") && segment.endsWith("**")) {
+        return (
+          <strong key={index} className="text-white">
+            {segment.slice(2, -2)}
+          </strong>
+        );
+      }
+
+      return <span key={index}>{segment}</span>;
+    });
+}
+
 // ─── Suggested Queries ──────────────────────────────────────────────────────
 
 const SUGGESTED_QUERIES = [
@@ -826,24 +920,51 @@ export default function CanvasPage() {
   const [result, setResult] = useState<CanvasResult | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [history, setHistory] = useState<string[]>([]);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const analysisTimeoutRef = useRef<number | null>(null);
 
   useEffect(() => {
-    getAllData().then(setData);
+    let isMounted = true;
+
+    getAllData()
+      .then((loadedData) => {
+        if (!isMounted) return;
+        setData(loadedData);
+      })
+      .catch((error: unknown) => {
+        if (!isMounted) return;
+        setLoadError(error instanceof Error ? error.message : "Failed to load analytics data.");
+      });
+
+    return () => {
+      isMounted = false;
+      if (analysisTimeoutRef.current !== null) {
+        window.clearTimeout(analysisTimeoutRef.current);
+      }
+    };
   }, []);
 
+  const analysisContext = useMemo(() => (data ? buildAnalysisContext(data) : null), [data]);
+
   const runAnalysis = useCallback((q: string) => {
-    if (!data || !q.trim()) return;
+    if (!analysisContext || !q.trim()) return;
+
+    if (analysisTimeoutRef.current !== null) {
+      window.clearTimeout(analysisTimeoutRef.current);
+    }
+
     setIsAnalyzing(true);
     setQuery(q);
 
     // Simulate brief processing time for UX
-    setTimeout(() => {
-      const r = analyzeQuery(q, data);
+    analysisTimeoutRef.current = window.setTimeout(() => {
+      const r = analyzeQuery(q, analysisContext);
       setResult(r);
       setIsAnalyzing(false);
       setHistory((prev) => [q, ...prev.filter((h) => h !== q)].slice(0, 10));
-    }, 400);
-  }, [data]);
+      analysisTimeoutRef.current = null;
+    }, 200);
+  }, [analysisContext]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -851,6 +972,17 @@ export default function CanvasPage() {
   };
 
   if (!data) {
+    if (loadError) {
+      return (
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <div className="max-w-md rounded-2xl border border-[rgba(255,0,64,0.35)] bg-[rgba(255,0,64,0.08)] px-6 py-5 text-center">
+            <div className="font-display text-sm tracking-wider text-[var(--accent-red)]">DATA UNAVAILABLE</div>
+            <p className="mt-2 text-sm text-[var(--text-secondary)]">{loadError}</p>
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <div className="text-center">
@@ -946,7 +1078,7 @@ export default function CanvasPage() {
               )}
 
               {block.type === "text" && (
-                <div className="text-sm text-[var(--text-secondary)] leading-relaxed" dangerouslySetInnerHTML={{ __html: (block.content || "").replace(/\*\*(.*?)\*\*/g, '<strong class="text-white">$1</strong>') }} />
+                <div className="text-sm text-[var(--text-secondary)] leading-relaxed">{renderTextContent(block.content || "")}</div>
               )}
 
               {block.type === "stat-grid" && block.stats && (

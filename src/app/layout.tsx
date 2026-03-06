@@ -1,25 +1,82 @@
 import type { Metadata } from "next";
+import Link from "next/link";
+import localFont from "next/font/local";
+import { Inter, JetBrains_Mono, Montserrat, Poppins } from "next/font/google";
 import "./globals.css";
+import { auth } from "@/auth";
 import { Providers } from "@/components/Providers";
 import { UserMenu } from "@/components/UserMenu";
+
+const integral = localFont({
+  src: [
+    {
+      path: "../../public/fonts/IntegralCF-Bold.otf",
+      weight: "700",
+      style: "normal",
+    },
+    {
+      path: "../../public/fonts/IntegralCF-DemiBold.otf",
+      weight: "600",
+      style: "normal",
+    },
+    {
+      path: "../../public/fonts/IntegralCF-BoldOblique.otf",
+      weight: "700",
+      style: "italic",
+    },
+  ],
+  variable: "--font-integral",
+  display: "swap",
+});
+
+const poppins = Poppins({
+  subsets: ["latin"],
+  weight: ["300", "400", "500", "600", "700"],
+  variable: "--font-poppins",
+  display: "swap",
+});
+
+const montserrat = Montserrat({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700", "800", "900"],
+  variable: "--font-montserrat",
+  display: "swap",
+});
+
+const inter = Inter({
+  subsets: ["latin"],
+  variable: "--font-inter",
+  display: "swap",
+});
+
+const jetBrainsMono = JetBrains_Mono({
+  subsets: ["latin"],
+  variable: "--font-jetbrains-mono",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   title: "TBR Analytics Hub — Team Blue Rising",
   description: "Race analytics and performance data for Team Blue Rising — E1 World Championship",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const session = await auth();
+
   return (
-    <html lang="en" className="dark">
+    <html
+      lang="en"
+      className={`dark ${integral.variable} ${poppins.variable} ${montserrat.variable} ${inter.variable} ${jetBrainsMono.variable}`}
+    >
       <body className="antialiased">
-        <Providers>
+        <Providers session={session}>
           <header className="sticky top-0 z-50 border-b-2 border-[var(--accent-cyan)] bg-[#0d0d0d]/95 backdrop-blur-md">
             <div className="max-w-[1600px] mx-auto flex items-center justify-between px-5 py-3">
-              <a href="/" className="flex items-center gap-3">
+              <Link href="/" prefetch={false} className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-full bg-[#0047FF] flex items-center justify-center">
                   <span className="font-display text-white text-sm font-bold">E1</span>
                 </div>
@@ -27,14 +84,14 @@ export default function RootLayout({
                   <div className="font-display text-sm font-bold tracking-wider text-white">TBR ANALYTICS HUB</div>
                   <div className="text-[10px] text-[var(--text-muted)] tracking-widest uppercase">Team Blue Rising</div>
                 </div>
-              </a>
+              </Link>
               <nav className="flex items-center gap-6">
-                <a href="/" className="text-sm font-semibold text-[var(--text-secondary)] hover:text-[var(--accent-cyan)] uppercase tracking-wider transition-colors">
+                <Link href="/" prefetch={false} className="text-sm font-semibold text-[var(--text-secondary)] hover:text-[var(--accent-cyan)] uppercase tracking-wider transition-colors">
                   Seasons
-                </a>
-                <a href="/canvas" className="text-sm font-semibold text-[var(--text-secondary)] hover:text-[var(--accent-cyan)] uppercase tracking-wider transition-colors">
+                </Link>
+                <Link href="/canvas" prefetch={false} className="text-sm font-semibold text-[var(--text-secondary)] hover:text-[var(--accent-cyan)] uppercase tracking-wider transition-colors">
                   Canvas
-                </a>
+                </Link>
                 <UserMenu />
               </nav>
             </div>
