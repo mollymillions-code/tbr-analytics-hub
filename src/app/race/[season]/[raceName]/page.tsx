@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { AllData, ChampionshipDoc } from "@/lib/types";
 import { getAllData } from "@/lib/data";
-import { collectEventSessions, parseSessionMetrics } from "@/lib/race";
+import { collectEventSessions, parseSessionMetrics, isRaceLikeSession } from "@/lib/race";
 import "./dashboard.css";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -166,6 +166,11 @@ export default function RaceDashboard() {
     });
   }, [raceData]);
 
+  // Only race-like sessions (no practice/qualifying) for tabs and summary
+  const raceSessions = useMemo(() => {
+    return sessions.filter(s => isRaceLikeSession(s.title));
+  }, [sessions]);
+
   // Championship data
   const championship = useMemo((): ChampionshipDoc | null => {
     if (!raceData) return null;
@@ -198,7 +203,7 @@ export default function RaceDashboard() {
     const pilotGains: Record<string, { total: number; team: string; penalties: number; breakdown: { race: string; gained: number | string; start: number | string; finish: number | string; penalty: string | null }[] }> = {};
     const teamGains: Record<string, { total: number; penalties: number; breakdown: { race: string; pilot: string; gained: number | string; start: number | string; finish: number | string; penalty: string | null }[]; pilots: Record<string, { total: number; penalties: number }> }> = {};
 
-    for (const session of sessions) {
+    for (const session of raceSessions) {
       for (const r of session.results) {
         const passed = typeof r.passed === "number" ? r.passed : 0;
         const hasPenalty = r.note && r.note.toLowerCase().includes("penalty");
@@ -238,11 +243,11 @@ export default function RaceDashboard() {
     }
 
     return { pilotGains, teamGains };
-  }, [sessions]);
+  }, [raceSessions]);
 
   // Race winners
   const raceWinners = useMemo(() => {
-    return sessions
+    return raceSessions
       .filter(s => s.results.length > 0 && s.results[0].pos === 1)
       .map(s => {
         const winner = s.results[0];
@@ -255,12 +260,12 @@ export default function RaceDashboard() {
           start: winner.start,
         };
       });
-  }, [sessions]);
+  }, [raceSessions]);
 
   // Biggest gainers/losers
   const biggestGainers = useMemo(() => {
     const all: { race: string; pilot: string; team: string; start: number; finish: number; gained: number; sl: string; ll: string }[] = [];
-    for (const s of sessions) {
+    for (const s of raceSessions) {
       for (const r of s.results) {
         if (typeof r.passed === "number" && typeof r.start === "number" && typeof r.pos === "number") {
           all.push({ race: s.title, pilot: r.pilot, team: r.team, start: r.start, finish: r.pos, gained: r.passed, sl: r.sl, ll: r.ll });
@@ -268,24 +273,28 @@ export default function RaceDashboard() {
       }
     }
     return all.sort((a, b) => b.gained - a.gained);
-  }, [sessions]);
+  }, [raceSessions]);
 
-  // Fastest laps across all sessions
+  // Fastest laps across race sessions
   const fastestLaps = useMemo(() => {
-    return sessions
+    return raceSessions
       .filter(s => s.fastestLap)
-      .map(s => ({ race: s.title, ...s.fastestLap! }))
+      .map(s => {
+        const flPilot = s.fastestLap!.pilot;
+        const flTeam = s.results.find(r => r.pilot === flPilot)?.team || s.results[0]?.team || "";
+        return { race: s.title, team: flTeam, ...s.fastestLap! };
+      })
       .sort((a, b) => {
         const ta = timeToSeconds(a.time);
         const tb = timeToSeconds(b.time);
         return (ta || 999) - (tb || 999);
       });
-  }, [sessions]);
+  }, [raceSessions]);
 
-  const totalPenalties = sessions.reduce((sum, s) => sum + s.penalties.length, 0);
-  const uniqueTeams = new Set(sessions.flatMap((session) => session.teams));
+  const totalPenalties = raceSessions.reduce((sum, s) => sum + s.penalties.length, 0);
+  const uniqueTeams = new Set(raceSessions.flatMap((session) => session.teams));
   const overallFastestLap = fastestLaps[0]?.time || "-";
-  const hasResultData = sessions.some((session) => session.results.length > 0);
+  const hasResultData = raceSessions.some((session) => session.results.length > 0);
 
   if (!data) {
     if (loadError) {
@@ -329,7 +338,7 @@ export default function RaceDashboard() {
     );
   }
 
-  const activeSession = sessions.find((session) => session.key === activeRace);
+  const activeSession = raceSessions.find((session) => session.key === activeRace);
 
   return (
     <div className={`jeddah-dashboard ${isDark ? "" : "light-mode"}`}>
@@ -356,8 +365,8 @@ export default function RaceDashboard() {
                 <div className="jd-stat-label">Teams</div>
               </div>
               <div className="jd-stat-item">
-                <div className="jd-stat-value">{sessions.length}</div>
-                <div className="jd-stat-label">Sessions</div>
+                <div className="jd-stat-value">{raceSessions.length}</div>
+                <div className="jd-stat-label">Races</div>
               </div>
             </div>
             {/* Theme Toggle */}
@@ -386,7 +395,7 @@ export default function RaceDashboard() {
             </div>
           </div>
           <nav className="jd-nav-tabs">
-            {sessions.map((session) => (
+            {raceSessions.map((session) => (
               <button
                 key={session.key}
                 onClick={() => setActiveRace(session.key)}
@@ -419,7 +428,7 @@ export default function RaceDashboard() {
         {activeRace === "__championship__" && championship && <ChampionshipView standings={championship.standings} />}
         {activeRace === "summary" && (
           <SummaryView
-            sessions={sessions}
+            sessions={raceSessions}
             totalPenalties={totalPenalties}
             uniqueTeamCount={uniqueTeams.size}
             overallFastestLap={overallFastestLap}
@@ -693,7 +702,7 @@ interface SummaryViewProps {
   };
   raceWinners: { race: string; team: string; pilot: string; sl: string; ll: string; start: number | string }[];
   biggestGainers: { race: string; pilot: string; team: string; start: number; finish: number; gained: number; sl: string; ll: string }[];
-  fastestLaps: { race: string; pilot: string; time: string; lap: number; kph: number }[];
+  fastestLaps: { race: string; pilot: string; team: string; time: string; lap: number; kph: number }[];
   gainsView: "pilot" | "team";
   setGainsView: (v: "pilot" | "team") => void;
   expandedBreakdowns: Set<string>;
@@ -713,10 +722,16 @@ function SummaryView({
       .map((lap) => Number.parseInt(lap, 10))
       .filter((lap) => Number.isFinite(lap));
 
-  const slLap2Wins = raceWinners.filter((winner) => toLapNumbers(winner.sl).includes(2)).length;
-  const llLate = raceWinners.filter(w => {
-    return toLapNumbers(w.ll).some((lap) => lap >= 5);
-  }).length;
+  const slLap2Winners = raceWinners.filter((winner) => toLapNumbers(winner.sl).includes(2));
+  const llLateWinners = raceWinners.filter(w => toLapNumbers(w.ll).some((lap) => lap >= 5));
+
+  // Late Short Lap (Lap 5-6) analysis
+  const lateSLWinners = raceWinners.filter(w => toLapNumbers(w.sl).some((lap) => lap >= 5));
+
+  // Lap 1 Long Lap analysis
+  const lap1LLRaces = sessions.filter(s =>
+    s.results.some(r => toLapNumbers(r.ll).includes(1))
+  );
 
   return (
     <div>
@@ -724,7 +739,7 @@ function SummaryView({
       <div className="jd-summary-grid">
         <div className="jd-summary-card blue">
           <div className="jd-summary-value">{sessions.length}</div>
-          <div className="jd-summary-label">Sessions Tracked</div>
+          <div className="jd-summary-label">Races Completed</div>
         </div>
         <div className="jd-summary-card green">
           <div className="jd-summary-value">{uniqueTeamCount}</div>
@@ -764,27 +779,32 @@ function SummaryView({
                 <div className="jd-insight-card green">
                   <div className="jd-insight-title">Early Short Lap (Lap 2)</div>
                   <div className="jd-insight-text">
-                    Correlates with best finishes - used by {slLap2Wins} race winner{slLap2Wins !== 1 ? "s" : ""}
+                    Correlates with best finishes - used by {slLap2Winners.length} race winner{slLap2Winners.length !== 1 ? "s" : ""}
+                    {slLap2Winners.length > 0 && ` (${slLap2Winners.map(w => w.race).join(", ")})`}
                   </div>
                 </div>
                 <div className="jd-insight-card blue">
                   <div className="jd-insight-title">Late Long Lap (Lap 5-6)</div>
                   <div className="jd-insight-text">
-                    Shows strong results - winning strategy in {llLate} race{llLate !== 1 ? "s" : ""}
+                    Shows strong results - winning strategy in {llLateWinners.length > 0
+                      ? llLateWinners.map(w => w.race).join(", ")
+                      : "no races"}
                   </div>
                 </div>
                 <div className="jd-insight-card red">
-                  <div className="jd-insight-title">Penalties Impact</div>
+                  <div className="jd-insight-title">Late Short Lap (Lap 5-6)</div>
                   <div className="jd-insight-text">
-                    {totalPenalties} penalt{totalPenalties !== 1 ? "ies" : "y"} issued across {sessions.length} sessions
+                    {lateSLWinners.length === 0
+                      ? "Tends to result in worse finishes - teams using this rarely won"
+                      : `Used by ${lateSLWinners.length} winner${lateSLWinners.length !== 1 ? "s" : ""} but generally riskier`}
                   </div>
                 </div>
                 <div className="jd-insight-card purple">
-                  <div className="jd-insight-title">Position Gains</div>
+                  <div className="jd-insight-title">Lap 1 Long Lap</div>
                   <div className="jd-insight-text">
-                    {gainers.length > 0
-                      ? `Biggest mover: ${gainers[0].pilot} gaining ${gainers[0].gained} positions in ${gainers[0].race}`
-                      : "No position changes recorded"}
+                    {lap1LLRaces.length > 0
+                      ? `In ${lap1LLRaces.map(r => r.title).join(", ")} showed mixed results - could be risky early strategy`
+                      : "No teams used Lap 1 Long Lap strategy"}
                   </div>
                 </div>
               </div>
@@ -908,6 +928,7 @@ function SummaryView({
               <tr>
                 <th>Race</th>
                 <th>Driver</th>
+                <th>Team</th>
                 <th>Time</th>
                 <th>Lap</th>
                 <th>Speed</th>
@@ -918,6 +939,7 @@ function SummaryView({
                 <tr key={i} className={i === 0 ? "jd-fastest-row" : ""}>
                   <td style={{ fontWeight: 600 }}>{fl.race}</td>
                   <td>{fl.pilot}</td>
+                  <td style={{ color: "var(--jd-accent-green)" }}>{fl.team}</td>
                   <td className={i === 0 ? "jd-fastest-time" : "jd-time-cell"}>{fl.time}</td>
                   <td>{fl.lap}</td>
                   <td style={{ color: "var(--jd-accent-cyan)" }}>{fl.kph} KPH</td>
