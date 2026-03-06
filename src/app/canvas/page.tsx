@@ -187,20 +187,129 @@ function buildAnalysisContext(data: AllData): AnalysisContext {
   };
 }
 
-// ─── Analysis Engine ────────────────────────────────────────────────────────
+// ─── Data Summary Builder (for Gemini context) ─────────────────────────────
+
+function buildDataSummary(context: AnalysisContext): string {
+  const { data, allCls, allAn, allChamp, fastestLaps } = context;
+  const lines: string[] = [];
+
+  // Overview
+  const seasons = Object.keys(data.seasons);
+  const totalRaces = Object.values(data.seasons).reduce((acc, s) => acc + Object.keys(s.races).length, 0);
+  lines.push(`=== E1 WORLD CHAMPIONSHIP DATA ===`);
+  lines.push(`Seasons: ${seasons.join(", ")} | Total Race Weekends: ${totalRaces} | Classification Sessions: ${allCls.length} | Analysis Sessions: ${allAn.length}`);
+  lines.push("");
+
+  // Per-season race list
+  for (const [season, sData] of Object.entries(data.seasons)) {
+    const races = Object.keys(sData.races);
+    lines.push(`--- ${season}: ${races.length} rounds: ${races.join(", ")} ---`);
+  }
+  lines.push("");
+
+  // Classification results (race results with positions, times, gaps)
+  lines.push("=== RACE RESULTS (Classification) ===");
+  for (const { season, race, doc } of allCls) {
+    if (doc.results.length === 0) continue;
+    lines.push(`\n[${season} | ${race} | ${doc.session}] Laps: ${doc.laps ?? "?"}, Distance: ${doc.distance ?? "?"}, Wind: ${doc.wind ?? "?"}`);
+    if (doc.fastest_lap?.pilot) {
+      lines.push(`  Fastest Lap: ${doc.fastest_lap.pilot} - ${doc.fastest_lap.time} (${doc.fastest_lap.kph} kph, Lap ${doc.fastest_lap.lap})`);
+    }
+    for (const r of doc.results) {
+      const bestLapStr = r.best_lap ? `BestLap:${r.best_lap.time}(Lap${r.best_lap.lap})` : "";
+      const parts = [
+        `P${r.pos}`,
+        r.team ?? "?",
+        r.pilot,
+        `#${r.no}`,
+        `Time:${r.total_time || "-"}`,
+        `Gap:${r.gap || "-"}`,
+        `Kph:${r.kph || "-"}`,
+        bestLapStr,
+        r.note ? `Note:${r.note}` : "",
+      ].filter(Boolean);
+      lines.push(`  ${parts.join(" | ")}`);
+    }
+  }
+  lines.push("");
+
+  // Analysis data (lap-by-lap with sectors, markers)
+  lines.push("=== LAP ANALYSIS DATA ===");
+  for (const { season, race, doc } of allAn) {
+    lines.push(`\n[${season} | ${race} | ${doc.session}]`);
+    for (const team of doc.teams) {
+      const slCount = team.laps.filter(l => l.marker === "SL").length;
+      const llCount = team.laps.filter(l => l.marker === "LL").length;
+      const bestLap = team.laps.reduce((best, l) => {
+        const sec = timeToSeconds(l.time);
+        return sec !== null && (best === null || sec < best) ? sec : best;
+      }, null as number | null);
+      lines.push(`  ${team.team} | Pilots: ${team.pilots.join(", ")} | Laps: ${team.laps.length} | SL: ${slCount} | LL: ${llCount} | Best: ${bestLap?.toFixed(3) ?? "?"}s`);
+
+      // Include sector data for each lap
+      for (const lap of team.laps) {
+        const sectorParts = [
+          `Lap${lap.lap}`,
+          lap.time,
+          lap.sector1 != null ? `S1:${lap.sector1.toFixed(3)}` : "",
+          lap.sector2 != null ? `S2:${lap.sector2.toFixed(3)}` : "",
+          lap.sector3 != null ? `S3:${lap.sector3.toFixed(3)}` : "",
+          lap.marker ? `[${lap.marker}]` : "",
+        ].filter(Boolean);
+        lines.push(`    ${sectorParts.join(" | ")}`);
+      }
+    }
+  }
+  lines.push("");
+
+  // Championship standings
+  lines.push("=== CHAMPIONSHIP STANDINGS ===");
+  const seasonLatest = new Map<string, { race: string; doc: ChampionshipDoc }>();
+  for (const c of allChamp) {
+    seasonLatest.set(c.season, { race: c.race, doc: c.doc });
+  }
+  for (const [season, { race, doc }] of seasonLatest) {
+    lines.push(`\n[${season} after ${race}]`);
+    for (const s of doc.standings) {
+      lines.push(`  P${s.pos} ${s.team} - ${s.points} pts`);
+    }
+  }
+  lines.push("");
+
+  // Fastest laps summary
+  lines.push("=== FASTEST LAPS ACROSS ALL SESSIONS ===");
+  const pilotFLCounts = new Map<string, { count: number; team: string | null; bestTime: string; bestKph: number }>();
+  for (const fl of fastestLaps) {
+    const existing = pilotFLCounts.get(fl.pilot);
+    if (!existing) {
+      pilotFLCounts.set(fl.pilot, { count: 1, team: fl.team, bestTime: fl.time, bestKph: fl.kph });
+    } else {
+      existing.count++;
+      if (fl.kph > existing.bestKph) {
+        existing.bestTime = fl.time;
+        existing.bestKph = fl.kph;
+      }
+    }
+  }
+  for (const [pilot, d] of [...pilotFLCounts.entries()].sort((a, b) => b[1].count - a[1].count)) {
+    lines.push(`  ${pilot} (${d.team ?? "?"}) - ${d.count} fastest laps, best: ${d.bestTime} (${d.bestKph} kph)`);
+  }
+
+  return lines.join("\n");
+}
+
+// ─── Legacy Analysis Functions (kept as fallback) ───────────────────────────
 
 function analyzeQuery(query: string, context: AnalysisContext): CanvasResult {
   const q = query.toLowerCase();
   const { data, allCls, allAn, allChamp, fastestLaps } = context;
 
-  // Detect team/pilot names
   const teamKeywords = [
     "blue rising", "tbr", "brady", "miami", "rafa", "perez", "westbrook",
     "drogba", "aoki", "alula", "lebron", "monaco", "sierra",
   ];
   const matchedTeam = teamKeywords.find((t) => q.includes(t));
 
-  // Detect query type
   const isAboutFastestLaps = q.includes("fastest") || q.includes("best lap") || q.includes("speed");
   const isAboutMistakes = q.includes("mistake") || q.includes("error") || q.includes("penalty") || q.includes("dnf") || q.includes("long lap") || q.includes("short lap");
   const isAboutChampionship = q.includes("championship") || q.includes("standing") || q.includes("points");
@@ -209,7 +318,6 @@ function analyzeQuery(query: string, context: AnalysisContext): CanvasResult {
   const isAboutOverview = q.includes("overview") || q.includes("summary") || q.includes("how") || q.includes("performance") || q.includes("season");
   const isAboutPilot = q.includes("pilot") || q.includes("driver");
 
-  // Route to specific analysis
   if (isAboutChampionship) return analyzeChampionship(allChamp, matchedTeam);
   if (isAboutMistakes && matchedTeam) return analyzeMistakes(allAn, allCls, matchedTeam);
   if (isAboutFastestLaps) return analyzeFastestLaps(allAn, fastestLaps, matchedTeam);
@@ -217,8 +325,6 @@ function analyzeQuery(query: string, context: AnalysisContext): CanvasResult {
   if (matchedTeam) return analyzeTeam(allCls, allAn, allChamp, matchedTeam);
   if (isAboutOverview || isAboutComparison) return analyzeOverview(data, allCls, allAn, allChamp);
   if (isAboutPilot) return analyzePilots(data, allCls, allAn);
-
-  // Default: overview
   return analyzeOverview(data, allCls, allAn, allChamp);
 }
 
@@ -828,15 +934,15 @@ function ChartBlock({ block }: { block: AnalysisBlock }) {
   if (!block.chartData || !block.chartConfig) return null;
   const { xKey, yKeys, height = 300 } = block.chartConfig;
 
-  const tooltipStyle = { backgroundColor: "#1e1e35", border: "1px solid #333", borderRadius: "8px", fontSize: "12px" };
+  const tooltipStyle = { backgroundColor: "#ffffff", border: "1px solid #DFE3EA", borderRadius: "8px", fontSize: "12px", color: "#1A2332" };
 
   if (block.chartType === "bar") {
     return (
       <ResponsiveContainer width="100%" height={height}>
         <BarChart data={block.chartData} margin={{ top: 10, right: 20, left: 10, bottom: 40 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#333" />
-          <XAxis dataKey={xKey} stroke="#666" tick={{ fill: "#888", fontSize: 10 }} interval={0} />
-          <YAxis stroke="#666" tick={{ fill: "#888", fontSize: 11 }} />
+          <CartesianGrid strokeDasharray="3 3" stroke="#E8ECF1" />
+          <XAxis dataKey={xKey} stroke="#B8BEC9" tick={{ fill: "#5A6577", fontSize: 10 }} interval={0} />
+          <YAxis stroke="#B8BEC9" tick={{ fill: "#5A6577", fontSize: 11 }} />
           <Tooltip contentStyle={tooltipStyle} />
           <Legend wrapperStyle={{ fontSize: "11px" }} />
           {yKeys.map((yk) => (
@@ -851,9 +957,9 @@ function ChartBlock({ block }: { block: AnalysisBlock }) {
     return (
       <ResponsiveContainer width="100%" height={height}>
         <LineChart data={block.chartData} margin={{ top: 10, right: 20, left: 10, bottom: 10 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#333" />
-          <XAxis dataKey={xKey} stroke="#666" tick={{ fill: "#888", fontSize: 10 }} />
-          <YAxis stroke="#666" tick={{ fill: "#888", fontSize: 11 }} reversed />
+          <CartesianGrid strokeDasharray="3 3" stroke="#E8ECF1" />
+          <XAxis dataKey={xKey} stroke="#B8BEC9" tick={{ fill: "#5A6577", fontSize: 10 }} />
+          <YAxis stroke="#B8BEC9" tick={{ fill: "#5A6577", fontSize: 11 }} reversed />
           <Tooltip contentStyle={tooltipStyle} />
           <Legend wrapperStyle={{ fontSize: "11px" }} />
           {yKeys.map((yk) => (
@@ -870,7 +976,7 @@ function ChartBlock({ block }: { block: AnalysisBlock }) {
         <PieChart>
           <Pie data={block.chartData} dataKey={yKeys[0].key} nameKey={xKey} cx="50%" cy="50%" outerRadius={100} label>
             {block.chartData.map((_, i) => (
-              <Cell key={i} fill={["#00d4ff", "#00ff88", "#ff0040", "#a855f7", "#ff8800", "#ffd700"][i % 6]} />
+              <Cell key={i} fill={["#0055D4", "#00875A", "#D32F2F", "#6B3FA0", "#E65100", "#B8860B"][i % 6]} />
             ))}
           </Pie>
           <Tooltip contentStyle={tooltipStyle} />
@@ -921,7 +1027,6 @@ export default function CanvasPage() {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [history, setHistory] = useState<string[]>([]);
   const [loadError, setLoadError] = useState<string | null>(null);
-  const analysisTimeoutRef = useRef<number | null>(null);
 
   useEffect(() => {
     let isMounted = true;
@@ -938,33 +1043,61 @@ export default function CanvasPage() {
 
     return () => {
       isMounted = false;
-      if (analysisTimeoutRef.current !== null) {
-        window.clearTimeout(analysisTimeoutRef.current);
-      }
     };
   }, []);
 
   const analysisContext = useMemo(() => (data ? buildAnalysisContext(data) : null), [data]);
+  const dataSummary = useMemo(() => (analysisContext ? buildDataSummary(analysisContext) : null), [analysisContext]);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
-  const runAnalysis = useCallback((q: string) => {
-    if (!analysisContext || !q.trim()) return;
+  const runAnalysis = useCallback(async (q: string) => {
+    if (!analysisContext || !dataSummary || !q.trim()) return;
 
-    if (analysisTimeoutRef.current !== null) {
-      window.clearTimeout(analysisTimeoutRef.current);
+    // Cancel any in-flight request
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
     }
 
     setIsAnalyzing(true);
     setQuery(q);
+    setResult(null);
 
-    // Simulate brief processing time for UX
-    analysisTimeoutRef.current = window.setTimeout(() => {
-      const r = analyzeQuery(q, analysisContext);
-      setResult(r);
-      setIsAnalyzing(false);
-      setHistory((prev) => [q, ...prev.filter((h) => h !== q)].slice(0, 10));
-      analysisTimeoutRef.current = null;
-    }, 200);
-  }, [analysisContext]);
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
+    try {
+      const response = await fetch("/api/canvas", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ query: q, dataSummary }),
+        signal: controller.signal,
+      });
+
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status}`);
+      }
+
+      const parsed: CanvasResult = await response.json();
+      if (!controller.signal.aborted) {
+        setResult(parsed);
+        setHistory((prev) => [q, ...prev.filter((h) => h !== q)].slice(0, 10));
+      }
+    } catch (err) {
+      if (err instanceof Error && err.name === "AbortError") return;
+      console.error("Canvas analysis error:", err);
+      // Fallback to local analysis
+      const fallback = analyzeQuery(q, analysisContext);
+      if (!controller.signal.aborted) {
+        setResult(fallback);
+        setHistory((prev) => [q, ...prev.filter((h) => h !== q)].slice(0, 10));
+      }
+    } finally {
+      if (!controller.signal.aborted) {
+        setIsAnalyzing(false);
+      }
+      abortControllerRef.current = null;
+    }
+  }, [analysisContext, dataSummary]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
