@@ -12,7 +12,8 @@ import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
   ResponsiveContainer, BarChart, Bar, Cell, PieChart, Pie,
 } from "recharts";
-import { Search, Sparkles, ChevronRight, X, Bookmark, Trash2, FileText, Check } from "lucide-react";
+import { Search, Sparkles, ChevronRight, X, Bookmark, Trash2, FileText, Check, Share2, Link } from "lucide-react";
+import { encodeReport, decodeReport, buildShareUrl, type SharedReport } from "@/lib/share";
 import {
   getCanvasState,
   subscribe,
@@ -1052,6 +1053,9 @@ export default function CanvasPage() {
   const [reportName, setReportName] = useState("");
   const [justSaved, setJustSaved] = useState(false);
   const [showSavedReports, setShowSavedReports] = useState(false);
+  const [isSharing, setIsSharing] = useState(false);
+  const [shareUrl, setShareUrl] = useState<string | null>(null);
+  const [sharedReportLoaded, setSharedReportLoaded] = useState(false);
 
   // Global store state
   const canvasState = useSyncExternalStore(subscribe, getCanvasState, getCanvasState);
@@ -1120,6 +1124,45 @@ export default function CanvasPage() {
     loadResult(report.query, report.result);
     setShowSavedReports(false);
   };
+
+  const handleShare = useCallback(async () => {
+    if (!result || !query) return;
+    setIsSharing(true);
+    try {
+      const shared: SharedReport = {
+        name: result.title,
+        query,
+        result,
+        sharedAt: Date.now(),
+      };
+      const encoded = await encodeReport(shared);
+      const url = buildShareUrl(encoded);
+      await navigator.clipboard.writeText(url);
+      setShareUrl(url);
+      setTimeout(() => setShareUrl(null), 3000);
+    } catch (err) {
+      console.error("Share failed:", err);
+    } finally {
+      setIsSharing(false);
+    }
+  }, [result, query]);
+
+  // Load shared report from URL ?report= param
+  useEffect(() => {
+    if (sharedReportLoaded) return;
+    const params = new URLSearchParams(window.location.search);
+    const reportParam = params.get("report");
+    if (!reportParam) return;
+    setSharedReportLoaded(true);
+    decodeReport(reportParam).then((shared) => {
+      setLocalQuery(shared.query);
+      loadResult(shared.query, shared.result);
+      // Clean up URL without reload
+      window.history.replaceState({}, "", "/canvas");
+    }).catch((err) => {
+      console.error("Failed to load shared report:", err);
+    });
+  }, [sharedReportLoaded]);
 
   if (!data) {
     if (loadError) {
@@ -1259,6 +1302,22 @@ export default function CanvasPage() {
               {result.title}
             </h2>
             <div className="flex items-center gap-2">
+              {/* Share Report */}
+              {shareUrl ? (
+                <span className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-[var(--accent-green)]">
+                  <Link className="w-3.5 h-3.5" />
+                  Link copied!
+                </span>
+              ) : (
+                <button
+                  onClick={handleShare}
+                  disabled={isSharing}
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-[#B8BEC9] rounded-lg text-xs font-semibold text-[#3D4A5C] hover:border-[var(--accent-cyan)] hover:text-[var(--accent-cyan)] transition-colors cursor-pointer disabled:opacity-40"
+                >
+                  <Share2 className="w-3.5 h-3.5" />
+                  Share
+                </button>
+              )}
               {/* Save Report */}
               {!showSaveDialog && !justSaved && (
                 <button
