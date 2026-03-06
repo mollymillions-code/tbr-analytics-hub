@@ -64,15 +64,31 @@ interface CanvasState {
 
 const listeners = new Set<Listener>();
 
-const stored = loadFromStorage();
+let hydrated = false;
 let state: CanvasState = {
-  query: stored?.query ?? "",
-  result: stored?.result ?? null,
-  isAnalyzing: false, // never restore analyzing state — the fetch didn't survive reload
-  history: stored?.history ?? [],
-  error: stored?.error ?? null,
+  query: "",
+  result: null,
+  isAnalyzing: false,
+  history: [],
+  error: null,
   startTime: null,
 };
+
+// Lazy hydration — called on first client-side read
+function hydrateOnce() {
+  if (hydrated) return;
+  hydrated = true;
+  const stored = loadFromStorage();
+  if (stored) {
+    state = {
+      ...state,
+      query: stored.query ?? "",
+      result: stored.result ?? null,
+      history: stored.history ?? [],
+      error: stored.error ?? null,
+    };
+  }
+}
 
 // Pending request tracking
 let currentAbortController: AbortController | null = null;
@@ -83,6 +99,7 @@ function notify() {
 }
 
 export function getCanvasState(): CanvasState {
+  hydrateOnce();
   return state;
 }
 
