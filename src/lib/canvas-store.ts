@@ -1,5 +1,36 @@
-// Global canvas analysis store — persists across page navigation
-// This is a module-level singleton, not tied to React lifecycle
+// Global canvas analysis store — persists across page navigation AND reloads
+// Module-level singleton + sessionStorage for durability
+
+const STORAGE_KEY = "canvas-state";
+
+function loadFromStorage(): Partial<CanvasState> | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = sessionStorage.getItem(STORAGE_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
+}
+
+function saveToStorage(s: CanvasState) {
+  if (typeof window === "undefined") return;
+  try {
+    // Only persist serializable, meaningful fields
+    sessionStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({
+        query: s.query,
+        result: s.result,
+        history: s.history,
+        error: s.error,
+      })
+    );
+  } catch {
+    // Storage full or unavailable — silently ignore
+  }
+}
 
 export interface AnalysisBlock {
   type: "text" | "chart" | "table" | "stat-grid" | "heading";
@@ -33,12 +64,13 @@ interface CanvasState {
 
 const listeners = new Set<Listener>();
 
+const stored = loadFromStorage();
 let state: CanvasState = {
-  query: "",
-  result: null,
-  isAnalyzing: false,
-  history: [],
-  error: null,
+  query: stored?.query ?? "",
+  result: stored?.result ?? null,
+  isAnalyzing: false, // never restore analyzing state — the fetch didn't survive reload
+  history: stored?.history ?? [],
+  error: stored?.error ?? null,
   startTime: null,
 };
 
@@ -46,6 +78,7 @@ let state: CanvasState = {
 let currentAbortController: AbortController | null = null;
 
 function notify() {
+  saveToStorage(state);
   for (const fn of listeners) fn();
 }
 
@@ -65,7 +98,7 @@ export function setQuery(q: string) {
 
 export function clearResult() {
   state = { ...state, result: null, query: "", error: null };
-  notify();
+  notify(); // also clears storage via notify
 }
 
 export async function runAnalysis(
