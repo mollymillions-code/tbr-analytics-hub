@@ -48,7 +48,7 @@ export default function RaceDashboard() {
 
   const [data, setData] = useState<AllData | null>(null);
   const [activeRace, setActiveRace] = useState<string>("summary");
-  const [isDark, setIsDark] = useState(true);
+  const [isDark, setIsDark] = useState(false);
   const [gainsView, setGainsView] = useState<"pilot" | "team">("pilot");
   const [expandedBreakdowns, setExpandedBreakdowns] = useState<Set<string>>(new Set());
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -299,7 +299,7 @@ export default function RaceDashboard() {
   if (!data) {
     if (loadError) {
       return (
-        <div className={`jeddah-dashboard ${isDark ? "" : "light-mode"}`}>
+        <div className={`jeddah-dashboard ${isDark ? "dark-mode" : ""}`}>
           <div style={{ textAlign: "center", padding: "80px 20px" }}>
             <div style={{ fontFamily: "var(--jd-font-display)", fontSize: "1.2rem", color: "#ff0040", marginBottom: "8px" }}>
               DATA UNAVAILABLE
@@ -311,7 +311,7 @@ export default function RaceDashboard() {
     }
 
     return (
-      <div className={`jeddah-dashboard ${isDark ? "" : "light-mode"}`}>
+      <div className={`jeddah-dashboard ${isDark ? "dark-mode" : ""}`}>
         <div className="jd-loading">
           <div style={{ textAlign: "center" }}>
             <div className="jd-spinner" />
@@ -326,7 +326,7 @@ export default function RaceDashboard() {
 
   if (!raceData) {
     return (
-      <div className={`jeddah-dashboard ${isDark ? "" : "light-mode"}`}>
+      <div className={`jeddah-dashboard ${isDark ? "dark-mode" : ""}`}>
         <div style={{ textAlign: "center", padding: "80px 20px" }}>
           <div style={{ fontFamily: "var(--jd-font-display)", fontSize: "1.2rem", color: "#ff0040", marginBottom: "8px" }}>
             RACE NOT FOUND
@@ -341,7 +341,7 @@ export default function RaceDashboard() {
   const activeSession = raceSessions.find((session) => session.key === activeRace);
 
   return (
-    <div className={`jeddah-dashboard ${isDark ? "" : "light-mode"}`}>
+    <div className={`jeddah-dashboard ${isDark ? "dark-mode" : ""}`}>
       {/* Sub Header */}
       <div className="jd-sub-header">
         <div className="jd-sub-header-content">

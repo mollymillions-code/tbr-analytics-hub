@@ -1,20 +1,20 @@
 @import "tailwindcss";
 
 :root {
-  --bg-primary: #0f0f23;
-  --bg-secondary: #1a1a2e;
-  --bg-card: #1e1e35;
-  --bg-header: #0d0d0d;
-  --text-primary: #ffffff;
-  --text-secondary: #888;
-  --text-muted: #666;
-  --border-color: #333;
-  --accent-cyan: #00d4ff;
-  --accent-green: #00ff88;
-  --accent-red: #ff0040;
-  --accent-purple: #a855f7;
-  --accent-orange: #ff8800;
-  --accent-gold: #ffd700;
+  --bg-primary: #F5F6FA;
+  --bg-secondary: #EEF0F6;
+  --bg-card: #ffffff;
+  --bg-header: #0A1628;
+  --text-primary: #1A2332;
+  --text-secondary: #5A6577;
+  --text-muted: #8D95A3;
+  --border-color: #DFE3EA;
+  --accent-cyan: #0055D4;
+  --accent-green: #00875A;
+  --accent-red: #D32F2F;
+  --accent-purple: #6B3FA0;
+  --accent-orange: #E65100;
+  --accent-gold: #B8860B;
   --font-display: var(--font-integral), var(--font-montserrat), sans-serif;
   --font-body: var(--font-poppins), sans-serif;
   --font-nav: var(--font-montserrat), sans-serif;
@@ -29,7 +29,7 @@
 }
 
 body {
-  background: linear-gradient(135deg, #0f0f23 0%, #16213e 50%, #0f0f23 100%);
+  background: #F5F6FA;
   color: var(--text-primary);
   font-family: var(--font-body);
   min-height: 100vh;
@@ -37,9 +37,9 @@ body {
 
 /* Scrollbar */
 ::-webkit-scrollbar { width: 8px; height: 8px; }
-::-webkit-scrollbar-track { background: #0f0f23; }
-::-webkit-scrollbar-thumb { background: #333; border-radius: 4px; }
-::-webkit-scrollbar-thumb:hover { background: #555; }
+::-webkit-scrollbar-track { background: #F0F1F5; }
+::-webkit-scrollbar-thumb { background: #C4C9D4; border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: #9BA3B0; }
 
 /* TBR brand headings */
 .font-display { font-family: var(--font-display); }
@@ -52,10 +52,6 @@ body {
 .border-accent-red { border-color: var(--accent-red); }
 .border-accent-purple { border-color: var(--accent-purple); }
 
-/* Glow effects */
-.glow-cyan { box-shadow: 0 0 20px rgba(0, 212, 255, 0.2); }
-.glow-green { box-shadow: 0 0 20px rgba(0, 255, 136, 0.2); }
-
 /* Pulse animation */
 @keyframes pulse-dot {
   0%, 100% { opacity: 1; }
@@ -64,12 +60,15 @@ body {
 .animate-pulse-dot { animation: pulse-dot 1.5s infinite; }
 
 /* Table hover */
-.race-table tr:hover { background: rgba(0, 212, 255, 0.05); }
+.race-table tr:hover { background: rgba(0, 85, 212, 0.04); }
 
 /* Card hover */
+.race-card {
+  transition: all 0.25s ease;
+  box-shadow: 0 1px 3px rgba(10, 22, 40, 0.06), 0 1px 2px rgba(10, 22, 40, 0.04);
+}
 .race-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 10px 30px rgba(0, 212, 255, 0.15);
+  transform: translateY(-3px);
+  box-shadow: 0 12px 28px rgba(10, 22, 40, 0.10), 0 4px 10px rgba(0, 85, 212, 0.08);
   border-color: var(--accent-cyan);
 }
-.race-card { transition: all 0.3s ease; }

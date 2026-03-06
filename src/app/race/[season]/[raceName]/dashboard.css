@@ -14,8 +14,39 @@
     width: calc(100% + 40px);
 }
 
-/* Dark mode (default) */
+/* Light mode (default) */
 .jeddah-dashboard {
+    --jd-bg-primary: linear-gradient(135deg, #f0f4f8 0%, #e8eef5 50%, #dce5f0 100%);
+    --jd-bg-header: linear-gradient(90deg, #ffffff 0%, #f8f9fa 50%, #ffffff 100%);
+    --jd-bg-subheader: linear-gradient(90deg, #f0f2f5 0%, #e8ebf0 50%, #f0f2f5 100%);
+    --jd-bg-card: linear-gradient(135deg, #ffffff 0%, #f5f7fa 100%);
+    --jd-bg-section: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+    --jd-bg-section-header: linear-gradient(90deg, #f0f2f5 0%, #ffffff 100%);
+    --jd-bg-grid: linear-gradient(180deg, #f5f7fa 0%, #ffffff 100%);
+    --jd-bg-grid-pos: linear-gradient(180deg, #f8f9fa 0%, #ffffff 100%);
+    --jd-bg-table-header: linear-gradient(180deg, #f5f7fa 0%, #eef1f5 100%);
+    --jd-text-primary: #1A2332;
+    --jd-text-secondary: #5A6577;
+    --jd-text-muted: #8D95A3;
+    --jd-border-color: #DFE3EA;
+    --jd-border-light: #D0D5DD;
+    --jd-border-dark: #E8ECF1;
+    --jd-accent-cyan: #0055D4;
+    --jd-accent-green: #00875A;
+    --jd-accent-red: #D32F2F;
+    --jd-accent-purple: #6B3FA0;
+    --jd-accent-orange: #E65100;
+    --jd-accent-gold: #B8860B;
+    --jd-sl-bg: rgba(0, 135, 90, 0.12);
+    --jd-sl-text: #00694A;
+    --jd-ll-bg: rgba(211, 47, 47, 0.12);
+    --jd-ll-text: #B71C1C;
+    --jd-gap-text: #D32F2F;
+    --jd-leader-text: #00875A;
+}
+
+/* Dark mode */
+.jeddah-dashboard.dark-mode {
     --jd-bg-primary: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f0f23 100%);
     --jd-bg-header: linear-gradient(90deg, #0d0d0d 0%, #1a1a1a 50%, #0d0d0d 100%);
     --jd-bg-subheader: linear-gradient(90deg, #1e1e2f 0%, #252540 50%, #1e1e2f 100%);
@@ -43,37 +74,6 @@
     --jd-ll-text: #ff4444;
     --jd-gap-text: #ff4444;
     --jd-leader-text: #00ff88;
-}
-
-/* Light mode */
-.jeddah-dashboard.light-mode {
-    --jd-bg-primary: linear-gradient(135deg, #f0f4f8 0%, #e8eef5 50%, #dce5f0 100%);
-    --jd-bg-header: linear-gradient(90deg, #ffffff 0%, #f8f9fa 50%, #ffffff 100%);
-    --jd-bg-subheader: linear-gradient(90deg, #f0f2f5 0%, #e8ebf0 50%, #f0f2f5 100%);
-    --jd-bg-card: linear-gradient(135deg, #ffffff 0%, #f5f7fa 100%);
-    --jd-bg-section: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
-    --jd-bg-section-header: linear-gradient(90deg, #f0f2f5 0%, #ffffff 100%);
-    --jd-bg-grid: linear-gradient(180deg, #f5f7fa 0%, #ffffff 100%);
-    --jd-bg-grid-pos: linear-gradient(180deg, #f8f9fa 0%, #ffffff 100%);
-    --jd-bg-table-header: linear-gradient(180deg, #f5f7fa 0%, #eef1f5 100%);
-    --jd-text-primary: #1a1a2e;
-    --jd-text-secondary: #555;
-    --jd-text-muted: #777;
-    --jd-border-color: #ddd;
-    --jd-border-light: #ccc;
-    --jd-border-dark: #e5e5e5;
-    --jd-accent-cyan: #0088cc;
-    --jd-accent-green: #008855;
-    --jd-accent-red: #cc0033;
-    --jd-accent-purple: #7c3aed;
-    --jd-accent-orange: #dd6600;
-    --jd-accent-gold: #b8860b;
-    --jd-sl-bg: rgba(0, 136, 85, 0.15);
-    --jd-sl-text: #006644;
-    --jd-ll-bg: rgba(204, 0, 51, 0.15);
-    --jd-ll-text: #990033;
-    --jd-gap-text: #cc0033;
-    --jd-leader-text: #008855;
 }
 
 /* Sub Header */
@@ -230,19 +230,19 @@
     border-color: #0088cc !important;
 }
 
-.light-mode .jd-nav-tab {
-    color: #555;
-    background: #fff;
-    border-color: #ddd;
+.dark-mode .jd-nav-tab {
+    color: #888;
+    background: var(--jd-bg-table-header);
+    border-color: #333;
 }
 
-.light-mode .jd-nav-tab:hover {
-    color: #0088cc !important;
-    border-color: #0088cc !important;
-    background: rgba(0, 136, 204, 0.1) !important;
+.dark-mode .jd-nav-tab:hover {
+    color: #00d4ff !important;
+    border-color: #00d4ff !important;
+    background: rgba(0, 212, 255, 0.1) !important;
 }
 
-.light-mode .jd-nav-tab.active {
+.dark-mode .jd-nav-tab.active {
     color: #fff !important;
     background-color: #0088cc !important;
     border-color: #0088cc !important;
@@ -320,9 +320,6 @@
     margin-bottom: 20px;
     overflow: hidden;
     transition: all 0.3s ease;
-}
-
-.light-mode .jd-section {
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
 }
 
@@ -345,8 +342,8 @@
     color: var(--jd-accent-cyan);
 }
 
-.light-mode .jd-section-title {
-    color: #0088cc;
+.dark-mode .jd-section-title {
+    color: #00d4ff;
 }
 
 /* Starting Grid */
@@ -390,9 +387,7 @@
     line-height: 1;
 }
 
-.light-mode .jd-grid-pos-number {
-    color: #0088cc;
-}
+/* grid pos number uses var(--jd-accent-cyan) from base */
 
 .jd-grid-position.pole .jd-grid-pos-number {
     color: var(--jd-accent-gold);
@@ -407,9 +402,7 @@
     letter-spacing: 0.5px;
 }
 
-.light-mode .jd-grid-team {
-    color: #00aa55;
-}
+/* grid team uses var(--jd-accent-green) from base */
 
 .jd-grid-pilot {
     font-size: 0.85rem;
@@ -457,11 +450,7 @@
 }
 
 .jd-results-table tr:hover {
-    background: rgba(0, 212, 255, 0.05);
-}
-
-.light-mode .jd-results-table tr:hover {
-    background: rgba(0, 136, 204, 0.08);
+    background: rgba(0, 85, 212, 0.06);
 }
 
 .jd-results-table tr.winner {
@@ -493,16 +482,11 @@
     font-size: 0.8rem;
     font-weight: 700;
     color: var(--jd-accent-cyan);
-    background: rgba(0, 136, 204, 0.1);
+    background: rgba(0, 85, 212, 0.08);
     padding: 4px 8px;
     border-radius: 3px;
     min-width: 35px;
     text-align: center;
-}
-
-.light-mode .jd-driver-number {
-    color: #0088cc;
-    background: rgba(0, 136, 204, 0.1);
 }
 
 .jd-driver-info {
@@ -783,17 +767,7 @@
     color: #fff;
 }
 
-.light-mode .jd-toggle-btn {
-    background: #fff;
-    border-color: #ddd;
-    color: #666;
-}
-
-.light-mode .jd-toggle-btn.active {
-    background: #0088cc;
-    border-color: #0088cc;
-    color: #fff;
-}
+/* toggle btn uses base variables */
 
 /* Gains Table */
 .jd-gains-table {
@@ -998,11 +972,11 @@
     position: relative;
     width: 50px;
     height: 26px;
-    background: #333;
+    background: #e0e0e0;
     border-radius: 13px;
     cursor: pointer;
     transition: all 0.3s ease;
-    border: 2px solid #444;
+    border: 2px solid #ccc;
     padding: 0;
 }
 
@@ -1010,23 +984,23 @@
     content: '';
     position: absolute;
     top: 2px;
-    left: 26px;
+    left: 2px;
     width: 18px;
     height: 18px;
-    background: #00d4ff;
+    background: #ff8800;
     border-radius: 50%;
     transition: all 0.3s ease;
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
 }
 
-.light-mode .jd-toggle-switch {
-    background: #e0e0e0;
-    border-color: #ccc;
+.dark-mode .jd-toggle-switch {
+    background: #333;
+    border-color: #444;
 }
 
-.light-mode .jd-toggle-switch::before {
-    left: 2px;
-    background: #ff8800;
+.dark-mode .jd-toggle-switch::before {
+    left: 26px;
+    background: #00d4ff;
 }
 
 .jd-theme-icon {

@@ -85,7 +85,7 @@ function LoginContent() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full px-6 py-3 bg-[#0047FF] text-white font-semibold text-sm rounded-lg hover:bg-[#0035cc] transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full px-6 py-3 bg-[var(--accent-cyan)] text-white font-semibold text-sm rounded-lg hover:bg-[#003DA5] transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {loading ? "Signing in..." : "Sign In"}
           </button>

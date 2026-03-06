@@ -69,7 +69,7 @@ export default function Home() {
               onClick={() => setSelectedSeason(season)}
               className={`px-5 py-3 rounded-lg font-semibold text-sm uppercase tracking-wider border-2 transition-all cursor-pointer ${
                 selectedSeason === season
-                  ? "bg-[#0088cc] border-[#0088cc] text-white"
+                  ? "bg-[var(--accent-cyan)] border-[var(--accent-cyan)] text-white"
                   : "bg-[var(--bg-card)] border-[var(--border-color)] text-[var(--text-secondary)] hover:border-[var(--accent-cyan)] hover:text-[var(--accent-cyan)]"
               }`}
             >
@@ -110,7 +110,7 @@ export default function Home() {
                 <Link
                   key={raceName}
                   href={`/race/${encodeURIComponent(selectedSeason)}/${encodeURIComponent(raceName)}`}
-                  className="race-card block bg-gradient-to-br from-[#1a1a2e] to-[#252542] border border-[var(--border-color)] rounded-xl overflow-hidden"
+                  className="race-card block bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl overflow-hidden"
                 >
                   <div className="h-1 bg-gradient-to-r from-[var(--accent-cyan)] to-[var(--accent-green)]" />
                   <div className="p-5">
@@ -125,19 +125,19 @@ export default function Home() {
                     </div>
                     <div className="text-xs text-[var(--text-muted)] mb-4">{info.country}</div>
                     <div className="grid grid-cols-2 gap-3 mb-4">
-                      <div className="bg-[rgba(0,212,255,0.08)] rounded-lg p-2.5 text-center">
+                      <div className="bg-[rgba(0,85,212,0.06)] rounded-lg p-2.5 text-center">
                         <div className="font-numbers text-lg font-bold text-[var(--accent-cyan)]">{totalSessions}</div>
                         <div className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider">Sessions</div>
                       </div>
-                      <div className="bg-[rgba(0,255,136,0.08)] rounded-lg p-2.5 text-center">
+                      <div className="bg-[rgba(0,135,90,0.06)] rounded-lg p-2.5 text-center">
                         <div className="font-numbers text-lg font-bold text-[var(--accent-green)]">{raceSessions.length}</div>
                         <div className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider">Races</div>
                       </div>
                     </div>
                     {tbrBestFinish && (
-                      <div className="bg-[rgba(0,71,255,0.15)] border border-[rgba(0,71,255,0.3)] rounded-lg px-3 py-2 text-center">
+                      <div className="bg-[rgba(0,85,212,0.08)] border border-[rgba(0,85,212,0.2)] rounded-lg px-3 py-2 text-center">
                         <span className="text-xs text-[var(--text-muted)]">TBR Best: </span>
-                        <span className="font-numbers font-bold text-sm text-white">P{tbrBestFinish}</span>
+                        <span className="font-numbers font-bold text-sm text-[var(--accent-cyan)]">P{tbrBestFinish}</span>
                       </div>
                     )}
                   </div>

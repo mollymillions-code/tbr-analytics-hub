@@ -74,11 +74,11 @@ export default async function RootLayout({
   return (
     <html
       lang="en"
-      className={`dark ${integral.variable} ${poppins.variable} ${montserrat.variable} ${inter.variable} ${jetBrainsMono.variable}`}
+      className={`${integral.variable} ${poppins.variable} ${montserrat.variable} ${inter.variable} ${jetBrainsMono.variable}`}
     >
       <body className="antialiased">
         <Providers session={session}>
-          <header className="sticky top-0 z-50 border-b-2 border-[var(--accent-cyan)] bg-[#0d0d0d]/95 backdrop-blur-md">
+          <header className="sticky top-0 z-50 border-b-2 border-[var(--accent-cyan)] bg-[var(--bg-header)] backdrop-blur-md">
             <div className="max-w-[1600px] mx-auto flex items-center justify-between px-5 py-3">
               <Link href="/" prefetch={false} className="flex items-center gap-3">
                 <Image src="/tbr-logo.svg" alt="TBR" width={40} height={40} className="w-10 h-10" priority />
