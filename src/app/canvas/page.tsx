@@ -12,21 +12,20 @@ import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
   ResponsiveContainer, BarChart, Bar, Cell, PieChart, Pie,
 } from "recharts";
-import { Search, Sparkles, ChevronRight, X, Bookmark, Trash2, FileText, Check, Share2, Link } from "lucide-react";
-import { encodeReport, decodeReport, buildShareUrl, type SharedReport } from "@/lib/share";
+import { Search, Sparkles, ChevronRight, X, Bookmark, FileText, Check, Share2, Link, AlertCircle } from "lucide-react";
+import { buildShareUrl } from "@/lib/share";
 import {
   getCanvasState,
   subscribe,
-  setQuery as setStoreQuery,
   clearResult,
   loadResult,
   runAnalysis as storeRunAnalysis,
-  getSavedReports,
-  saveReport,
-  deleteReport,
+  fetchSavedReports,
+  saveReportToServer,
+  loadReportById,
   type CanvasResult,
   type AnalysisBlock,
-  type SavedReport,
+  type SavedReportMeta,
 } from "@/lib/canvas-store";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -1054,19 +1053,30 @@ export default function CanvasPage() {
   const [justSaved, setJustSaved] = useState(false);
   const [showSavedReports, setShowSavedReports] = useState(false);
   const [isSharing, setIsSharing] = useState(false);
-  const [shareUrl, setShareUrl] = useState<string | null>(null);
-  const [sharedReportLoaded, setSharedReportLoaded] = useState(false);
+  const [shareStatus, setShareStatus] = useState<"idle" | "copied" | "error">("idle");
+  const [isSaving, setIsSaving] = useState(false);
+  const [urlReportLoaded, setUrlReportLoaded] = useState(false);
 
   // Global store state
   const canvasState = useSyncExternalStore(subscribe, getCanvasState, getCanvasState);
   const { query, result, isAnalyzing, history, error: storeError } = canvasState;
 
-  // Saved reports — re-read when store notifies
-  const [savedReports, setSavedReports] = useState<SavedReport[]>([]);
-  useEffect(() => {
-    setSavedReports(getSavedReports());
-    return subscribe(() => setSavedReports(getSavedReports()));
+  // Server-side saved reports — shared across all users
+  const [savedReports, setSavedReports] = useState<SavedReportMeta[]>([]);
+  const [reportsLoading, setReportsLoading] = useState(false);
+
+  const refreshReports = useCallback(async () => {
+    setReportsLoading(true);
+    const reports = await fetchSavedReports();
+    setSavedReports(reports);
+    setReportsLoading(false);
   }, []);
+
+  useEffect(() => {
+    refreshReports();
+    // Also refresh when store notifies (after a save)
+    return subscribe(() => { refreshReports(); });
+  }, [refreshReports]);
 
   // Sync local input with store query
   useEffect(() => {
@@ -1109,60 +1119,70 @@ export default function CanvasPage() {
     runAnalysis(localQuery);
   };
 
-  const handleSaveReport = () => {
-    if (!result || !query) return;
+  const handleSaveReport = useCallback(async () => {
+    if (!result || !query || isSaving) return;
+    setIsSaving(true);
     const name = reportName.trim() || result.title;
-    saveReport(name, query, result);
-    setShowSaveDialog(false);
-    setReportName("");
-    setJustSaved(true);
-    setTimeout(() => setJustSaved(false), 2000);
-  };
+    const saved = await saveReportToServer(name, query, result, "team");
+    setIsSaving(false);
+    if (saved) {
+      setShowSaveDialog(false);
+      setReportName("");
+      setJustSaved(true);
+      setTimeout(() => setJustSaved(false), 2000);
+    }
+  }, [result, query, reportName, isSaving]);
 
-  const handleLoadReport = (report: SavedReport) => {
-    setLocalQuery(report.query);
-    loadResult(report.query, report.result);
+  const handleLoadReport = useCallback(async (report: SavedReportMeta) => {
     setShowSavedReports(false);
-  };
+    const full = await loadReportById(report.id);
+    if (full) {
+      setLocalQuery(full.query);
+      loadResult(full.query, full.result);
+    }
+  }, []);
 
   const handleShare = useCallback(async () => {
     if (!result || !query) return;
     setIsSharing(true);
+    setShareStatus("idle");
     try {
-      const shared: SharedReport = {
-        name: result.title,
-        query,
-        result,
-        sharedAt: Date.now(),
-      };
-      const encoded = await encodeReport(shared);
-      const url = buildShareUrl(encoded);
+      // Save to server first to get an ID
+      const saved = await saveReportToServer(result.title, query, result, "team");
+      if (!saved) {
+        setShareStatus("error");
+        setTimeout(() => setShareStatus("idle"), 3000);
+        return;
+      }
+      const url = buildShareUrl(saved.id);
       await navigator.clipboard.writeText(url);
-      setShareUrl(url);
-      setTimeout(() => setShareUrl(null), 3000);
-    } catch (err) {
-      console.error("Share failed:", err);
+      setShareStatus("copied");
+      setTimeout(() => setShareStatus("idle"), 3000);
+    } catch {
+      setShareStatus("error");
+      setTimeout(() => setShareStatus("idle"), 3000);
     } finally {
       setIsSharing(false);
     }
   }, [result, query]);
 
-  // Load shared report from URL ?report= param
+  // Load report from URL ?id= param (short shareable link)
   useEffect(() => {
-    if (sharedReportLoaded) return;
+    if (urlReportLoaded) return;
     const params = new URLSearchParams(window.location.search);
-    const reportParam = params.get("report");
-    if (!reportParam) return;
-    setSharedReportLoaded(true);
-    decodeReport(reportParam).then((shared) => {
-      setLocalQuery(shared.query);
-      loadResult(shared.query, shared.result);
-      // Clean up URL without reload
+    const id = params.get("id");
+    if (!id) return;
+    setUrlReportLoaded(true);
+    loadReportById(id).then((report) => {
+      if (report) {
+        setLocalQuery(report.query);
+        loadResult(report.query, report.result);
+      }
       window.history.replaceState({}, "", "/canvas");
-    }).catch((err) => {
-      console.error("Failed to load shared report:", err);
+    }).catch(() => {
+      window.history.replaceState({}, "", "/canvas");
     });
-  }, [sharedReportLoaded]);
+  }, [urlReportLoaded]);
 
   if (!data) {
     if (loadError) {
@@ -1196,32 +1216,37 @@ export default function CanvasPage() {
             Ask questions about E1 race data. Get instant analysis with charts, tables, and insights.
           </p>
         </div>
-        {savedReports.length > 0 && (
-          <button
-            onClick={() => setShowSavedReports(!showSavedReports)}
-            className="flex items-center gap-2 px-4 py-2 bg-white border border-[#B8BEC9] rounded-lg text-xs font-semibold text-[#3D4A5C] hover:border-[var(--accent-cyan)] hover:text-[var(--accent-cyan)] transition-colors cursor-pointer"
-          >
-            <FileText className="w-3.5 h-3.5" />
-            Saved Reports ({savedReports.length})
-          </button>
-        )}
+        <button
+          onClick={() => setShowSavedReports(!showSavedReports)}
+          className="flex items-center gap-2 px-4 py-2 bg-white border border-[#B8BEC9] rounded-lg text-xs font-semibold text-[#3D4A5C] hover:border-[var(--accent-cyan)] hover:text-[var(--accent-cyan)] transition-colors cursor-pointer"
+        >
+          <FileText className="w-3.5 h-3.5" />
+          Saved Reports{savedReports.length > 0 ? ` (${savedReports.length})` : ""}
+        </button>
       </div>
 
       {/* Saved Reports Panel */}
-      {showSavedReports && savedReports.length > 0 && (
+      {showSavedReports && (
         <div className="mb-6 bg-white border border-[#D0D5DD] rounded-xl overflow-hidden">
           <div className="flex items-center justify-between px-5 py-3 border-b border-[var(--border-color)]">
-            <span className="text-xs font-semibold text-[var(--text-muted)] uppercase tracking-widest">Saved Reports</span>
+            <span className="text-xs font-semibold text-[var(--text-muted)] uppercase tracking-widest">
+              Saved Reports {reportsLoading && "(loading...)"}
+            </span>
             <button onClick={() => setShowSavedReports(false)} className="text-[var(--text-muted)] hover:text-[var(--text-primary)] cursor-pointer">
               <X className="w-4 h-4" />
             </button>
           </div>
-          <div className="divide-y divide-[var(--border-color)]">
-            {savedReports.map((report) => (
-              <div key={report.id} className="flex items-center justify-between px-5 py-3 hover:bg-[var(--bg-secondary)] transition-colors">
+          {savedReports.length === 0 ? (
+            <div className="px-5 py-6 text-center text-sm text-[var(--text-muted)]">
+              {reportsLoading ? "Loading reports..." : "No saved reports yet. Run an analysis and click Save."}
+            </div>
+          ) : (
+            <div className="divide-y divide-[var(--border-color)]">
+              {savedReports.map((report) => (
                 <button
+                  key={report.id}
                   onClick={() => handleLoadReport(report)}
-                  className="flex-1 text-left cursor-pointer"
+                  className="w-full text-left px-5 py-3 hover:bg-[var(--bg-secondary)] transition-colors cursor-pointer"
                 >
                   <div className="text-sm font-semibold text-[var(--text-primary)]">{report.name}</div>
                   <div className="text-[10px] text-[var(--text-muted)] mt-0.5">
@@ -1229,16 +1254,9 @@ export default function CanvasPage() {
                     {" — "}{report.query.length > 60 ? report.query.slice(0, 60) + "..." : report.query}
                   </div>
                 </button>
-                <button
-                  onClick={() => deleteReport(report.id)}
-                  className="ml-3 p-1.5 text-[var(--text-muted)] hover:text-[var(--accent-red)] transition-colors cursor-pointer"
-                  title="Delete report"
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
-                </button>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
@@ -1303,10 +1321,15 @@ export default function CanvasPage() {
             </h2>
             <div className="flex items-center gap-2">
               {/* Share Report */}
-              {shareUrl ? (
+              {shareStatus === "copied" ? (
                 <span className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-[var(--accent-green)]">
                   <Link className="w-3.5 h-3.5" />
                   Link copied!
+                </span>
+              ) : shareStatus === "error" ? (
+                <span className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-[var(--accent-red)]">
+                  <AlertCircle className="w-3.5 h-3.5" />
+                  Share failed
                 </span>
               ) : (
                 <button
@@ -1315,7 +1338,7 @@ export default function CanvasPage() {
                   className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-[#B8BEC9] rounded-lg text-xs font-semibold text-[#3D4A5C] hover:border-[var(--accent-cyan)] hover:text-[var(--accent-cyan)] transition-colors cursor-pointer disabled:opacity-40"
                 >
                   <Share2 className="w-3.5 h-3.5" />
-                  Share
+                  {isSharing ? "Saving..." : "Share"}
                 </button>
               )}
               {/* Save Report */}

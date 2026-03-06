@@ -123,70 +123,59 @@ export function loadResult(query: string, result: CanvasResult) {
   notify();
 }
 
-// ─── Saved Reports (localStorage — persistent across sessions) ────────────
+// ─── Saved Reports (server-side via Vercel Blob — shared across all users) ──
 
-const REPORTS_KEY = "canvas-saved-reports";
-
-export interface SavedReport {
+export interface SavedReportMeta {
   id: string;
   name: string;
   query: string;
-  result: CanvasResult;
+  savedBy: string;
   savedAt: number;
 }
 
-function loadReports(): SavedReport[] {
-  if (typeof window === "undefined") return [];
+export interface SavedReportFull extends SavedReportMeta {
+  result: CanvasResult;
+}
+
+export async function fetchSavedReports(): Promise<SavedReportMeta[]> {
   try {
-    const raw = localStorage.getItem(REPORTS_KEY);
-    return raw ? JSON.parse(raw) : [];
+    const res = await fetch("/api/reports", { credentials: "same-origin" });
+    if (!res.ok) return [];
+    return res.json();
   } catch {
     return [];
   }
 }
 
-function persistReports(reports: SavedReport[]) {
-  if (typeof window === "undefined") return;
+export async function saveReportToServer(
+  name: string,
+  query: string,
+  result: CanvasResult,
+  savedBy: string
+): Promise<SavedReportMeta | null> {
   try {
-    localStorage.setItem(REPORTS_KEY, JSON.stringify(reports));
+    const res = await fetch("/api/reports", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "same-origin",
+      body: JSON.stringify({ name: name.trim() || result.title, query, result, savedBy }),
+    });
+    if (!res.ok) return null;
+    const meta: SavedReportMeta = await res.json();
+    for (const fn of listeners) fn();
+    return meta;
   } catch {
-    // Storage full
+    return null;
   }
 }
 
-export function getSavedReports(): SavedReport[] {
-  return loadReports();
-}
-
-export function saveReport(name: string, query: string, result: CanvasResult): SavedReport {
-  const reports = loadReports();
-  const report: SavedReport = {
-    id: `report-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-    name: name.trim() || result.title,
-    query,
-    result,
-    savedAt: Date.now(),
-  };
-  reports.unshift(report);
-  persistReports(reports);
-  // Notify listeners so UI updates
-  for (const fn of listeners) fn();
-  return report;
-}
-
-export function deleteReport(id: string) {
-  const reports = loadReports().filter((r) => r.id !== id);
-  persistReports(reports);
-  for (const fn of listeners) fn();
-}
-
-export function renameReport(id: string, newName: string) {
-  const reports = loadReports();
-  const report = reports.find((r) => r.id === id);
-  if (report) {
-    report.name = newName.trim();
-    persistReports(reports);
-    for (const fn of listeners) fn();
+export async function loadReportById(id: string): Promise<SavedReportFull | null> {
+  try {
+    const res = await fetch(`/api/reports/${encodeURIComponent(id)}`, { credentials: "same-origin" });
+    if (!res.ok) return null;
+    return res.json();
+  } catch {
+    return null;
   }
 }
 
