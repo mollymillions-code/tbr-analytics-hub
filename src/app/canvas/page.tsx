@@ -1057,8 +1057,12 @@ export default function CanvasPage() {
   const canvasState = useSyncExternalStore(subscribe, getCanvasState, getCanvasState);
   const { query, result, isAnalyzing, history, error: storeError } = canvasState;
 
-  // Saved reports — re-read on every store notification
-  const savedReports = useSyncExternalStore(subscribe, getSavedReports, () => [] as SavedReport[]);
+  // Saved reports — re-read when store notifies
+  const [savedReports, setSavedReports] = useState<SavedReport[]>([]);
+  useEffect(() => {
+    setSavedReports(getSavedReports());
+    return subscribe(() => setSavedReports(getSavedReports()));
+  }, []);
 
   // Sync local input with store query
   useEffect(() => {
