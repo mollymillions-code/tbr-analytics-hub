@@ -12,15 +12,20 @@ import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
   ResponsiveContainer, BarChart, Bar, Cell, PieChart, Pie,
 } from "recharts";
-import { Search, Sparkles, ChevronRight, X } from "lucide-react";
+import { Search, Sparkles, ChevronRight, X, Bookmark, Trash2, FileText, Check } from "lucide-react";
 import {
   getCanvasState,
   subscribe,
   setQuery as setStoreQuery,
   clearResult,
+  loadResult,
   runAnalysis as storeRunAnalysis,
+  getSavedReports,
+  saveReport,
+  deleteReport,
   type CanvasResult,
   type AnalysisBlock,
+  type SavedReport,
 } from "@/lib/canvas-store";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -1043,10 +1048,17 @@ export default function CanvasPage() {
   const [data, setData] = useState<AllData | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [localQuery, setLocalQuery] = useState("");
+  const [showSaveDialog, setShowSaveDialog] = useState(false);
+  const [reportName, setReportName] = useState("");
+  const [justSaved, setJustSaved] = useState(false);
+  const [showSavedReports, setShowSavedReports] = useState(false);
 
   // Global store state
   const canvasState = useSyncExternalStore(subscribe, getCanvasState, getCanvasState);
   const { query, result, isAnalyzing, history, error: storeError } = canvasState;
+
+  // Saved reports — re-read on every store notification
+  const savedReports = useSyncExternalStore(subscribe, getSavedReports, () => [] as SavedReport[]);
 
   // Sync local input with store query
   useEffect(() => {
@@ -1089,6 +1101,22 @@ export default function CanvasPage() {
     runAnalysis(localQuery);
   };
 
+  const handleSaveReport = () => {
+    if (!result || !query) return;
+    const name = reportName.trim() || result.title;
+    saveReport(name, query, result);
+    setShowSaveDialog(false);
+    setReportName("");
+    setJustSaved(true);
+    setTimeout(() => setJustSaved(false), 2000);
+  };
+
+  const handleLoadReport = (report: SavedReport) => {
+    setLocalQuery(report.query);
+    loadResult(report.query, report.result);
+    setShowSavedReports(false);
+  };
+
   if (!data) {
     if (loadError) {
       return (
@@ -1114,12 +1142,58 @@ export default function CanvasPage() {
   return (
     <div className="max-w-5xl mx-auto">
       {/* Header */}
-      <div className="mb-8">
-        <h1 className="font-display text-2xl font-bold tracking-wider mb-1">CANVAS</h1>
-        <p className="text-[var(--text-secondary)] text-sm">
-          Ask questions about E1 race data. Get instant analysis with charts, tables, and insights.
-        </p>
+      <div className="flex items-start justify-between mb-8">
+        <div>
+          <h1 className="font-display text-2xl font-bold tracking-wider mb-1">CANVAS</h1>
+          <p className="text-[var(--text-secondary)] text-sm">
+            Ask questions about E1 race data. Get instant analysis with charts, tables, and insights.
+          </p>
+        </div>
+        {savedReports.length > 0 && (
+          <button
+            onClick={() => setShowSavedReports(!showSavedReports)}
+            className="flex items-center gap-2 px-4 py-2 bg-white border border-[#B8BEC9] rounded-lg text-xs font-semibold text-[#3D4A5C] hover:border-[var(--accent-cyan)] hover:text-[var(--accent-cyan)] transition-colors cursor-pointer"
+          >
+            <FileText className="w-3.5 h-3.5" />
+            Saved Reports ({savedReports.length})
+          </button>
+        )}
       </div>
+
+      {/* Saved Reports Panel */}
+      {showSavedReports && savedReports.length > 0 && (
+        <div className="mb-6 bg-white border border-[#D0D5DD] rounded-xl overflow-hidden">
+          <div className="flex items-center justify-between px-5 py-3 border-b border-[var(--border-color)]">
+            <span className="text-xs font-semibold text-[var(--text-muted)] uppercase tracking-widest">Saved Reports</span>
+            <button onClick={() => setShowSavedReports(false)} className="text-[var(--text-muted)] hover:text-[var(--text-primary)] cursor-pointer">
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+          <div className="divide-y divide-[var(--border-color)]">
+            {savedReports.map((report) => (
+              <div key={report.id} className="flex items-center justify-between px-5 py-3 hover:bg-[var(--bg-secondary)] transition-colors">
+                <button
+                  onClick={() => handleLoadReport(report)}
+                  className="flex-1 text-left cursor-pointer"
+                >
+                  <div className="text-sm font-semibold text-[var(--text-primary)]">{report.name}</div>
+                  <div className="text-[10px] text-[var(--text-muted)] mt-0.5">
+                    {new Date(report.savedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit" })}
+                    {" — "}{report.query.length > 60 ? report.query.slice(0, 60) + "..." : report.query}
+                  </div>
+                </button>
+                <button
+                  onClick={() => deleteReport(report.id)}
+                  className="ml-3 p-1.5 text-[var(--text-muted)] hover:text-[var(--accent-red)] transition-colors cursor-pointer"
+                  title="Delete report"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Search Bar */}
       <form onSubmit={handleSubmit} className="mb-6">
@@ -1180,13 +1254,58 @@ export default function CanvasPage() {
             <h2 className="font-display text-lg font-bold tracking-wider text-[var(--accent-cyan)]">
               {result.title}
             </h2>
-            <button
-              onClick={() => { clearResult(); setLocalQuery(""); }}
-              className="text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors cursor-pointer"
-            >
-              <X className="w-5 h-5" />
-            </button>
+            <div className="flex items-center gap-2">
+              {/* Save Report */}
+              {!showSaveDialog && !justSaved && (
+                <button
+                  onClick={() => { setReportName(result.title); setShowSaveDialog(true); }}
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-[#B8BEC9] rounded-lg text-xs font-semibold text-[#3D4A5C] hover:border-[var(--accent-cyan)] hover:text-[var(--accent-cyan)] transition-colors cursor-pointer"
+                >
+                  <Bookmark className="w-3.5 h-3.5" />
+                  Save
+                </button>
+              )}
+              {justSaved && (
+                <span className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-[var(--accent-green)]">
+                  <Check className="w-3.5 h-3.5" />
+                  Saved
+                </span>
+              )}
+              <button
+                onClick={() => { clearResult(); setLocalQuery(""); setShowSaveDialog(false); }}
+                className="text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
           </div>
+
+          {/* Save Dialog */}
+          {showSaveDialog && (
+            <div className="flex items-center gap-2 bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-xl px-4 py-3">
+              <input
+                type="text"
+                value={reportName}
+                onChange={(e) => setReportName(e.target.value)}
+                placeholder="Report name..."
+                autoFocus
+                onKeyDown={(e) => { if (e.key === "Enter") handleSaveReport(); if (e.key === "Escape") setShowSaveDialog(false); }}
+                className="flex-1 bg-white border border-[#B8BEC9] rounded-lg px-3 py-2 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[var(--accent-cyan)]"
+              />
+              <button
+                onClick={handleSaveReport}
+                className="px-4 py-2 bg-[var(--accent-cyan)] text-white text-xs font-bold rounded-lg hover:bg-[#003DA5] transition-colors cursor-pointer"
+              >
+                Save
+              </button>
+              <button
+                onClick={() => setShowSaveDialog(false)}
+                className="text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          )}
 
           {/* Blocks */}
           {result.blocks.map((block, i) => (

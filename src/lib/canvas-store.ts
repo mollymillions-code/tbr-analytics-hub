@@ -118,6 +118,78 @@ export function clearResult() {
   notify(); // also clears storage via notify
 }
 
+export function loadResult(query: string, result: CanvasResult) {
+  state = { ...state, query, result, isAnalyzing: false, error: null, startTime: null };
+  notify();
+}
+
+// ─── Saved Reports (localStorage — persistent across sessions) ────────────
+
+const REPORTS_KEY = "canvas-saved-reports";
+
+export interface SavedReport {
+  id: string;
+  name: string;
+  query: string;
+  result: CanvasResult;
+  savedAt: number;
+}
+
+function loadReports(): SavedReport[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = localStorage.getItem(REPORTS_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+function persistReports(reports: SavedReport[]) {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.setItem(REPORTS_KEY, JSON.stringify(reports));
+  } catch {
+    // Storage full
+  }
+}
+
+export function getSavedReports(): SavedReport[] {
+  return loadReports();
+}
+
+export function saveReport(name: string, query: string, result: CanvasResult): SavedReport {
+  const reports = loadReports();
+  const report: SavedReport = {
+    id: `report-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+    name: name.trim() || result.title,
+    query,
+    result,
+    savedAt: Date.now(),
+  };
+  reports.unshift(report);
+  persistReports(reports);
+  // Notify listeners so UI updates
+  for (const fn of listeners) fn();
+  return report;
+}
+
+export function deleteReport(id: string) {
+  const reports = loadReports().filter((r) => r.id !== id);
+  persistReports(reports);
+  for (const fn of listeners) fn();
+}
+
+export function renameReport(id: string, newName: string) {
+  const reports = loadReports();
+  const report = reports.find((r) => r.id === id);
+  if (report) {
+    report.name = newName.trim();
+    persistReports(reports);
+    for (const fn of listeners) fn();
+  }
+}
+
 export async function runAnalysis(
   query: string,
   dataSummary: string,
