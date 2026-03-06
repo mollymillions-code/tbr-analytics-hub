@@ -139,7 +139,7 @@
                   "lap": 2,
                   "pilot": "Anna GLENNON",
                   "time": "1:01.738",
-                  "kph": 66.0
+                  "kph": 66
                 },
                 "results": [],
                 "date": "02/02/2024",
@@ -817,7 +817,7 @@
                   "lap": 3,
                   "pilot": "Emma KIMILÄINEN",
                   "time": "1:21.435",
-                  "kph": 71.0
+                  "kph": 71
                 },
                 "results": [],
                 "date": "31/01/2024",
@@ -931,7 +931,7 @@
                   "lap": 8,
                   "pilot": "Sara PRICE",
                   "time": "1:27.472",
-                  "kph": 71.0
+                  "kph": 71
                 },
                 "results": [],
                 "date": "11/05/2024",
@@ -959,7 +959,7 @@
                   "lap": 3,
                   "pilot": "Yousef AL ABDULRAZZAQ",
                   "time": "1:26.323",
-                  "kph": 72.0
+                  "kph": 72
                 },
                 "results": [],
                 "date": "11/05/2024",
@@ -1167,7 +1167,7 @@
                   "lap": 2,
                   "pilot": "Emma KIMILÄINEN",
                   "time": "1:30.005",
-                  "kph": 69.0
+                  "kph": 69
                 },
                 "results": [],
                 "date": "12/05/2024",
@@ -2052,7 +2052,7 @@
                   "lap": 2,
                   "pilot": "Lucas ORDOÑEZ",
                   "time": "1:57.013",
-                  "kph": 55.0
+                  "kph": 55
                 },
                 "results": [],
                 "date": "02/06/2024",
@@ -2410,7 +2410,7 @@
                   "lap": 2,
                   "pilot": "Emma KIMILÄINEN",
                   "time": "1:52.949",
-                  "kph": 57.0
+                  "kph": 57
                 },
                 "results": [],
                 "date": "01/06/2024",
@@ -3155,7 +3155,7 @@
                   "lap": 11,
                   "pilot": "Stefan HAGIN",
                   "time": "1:37.958",
-                  "kph": 64.0
+                  "kph": 64
                 },
                 "results": [],
                 "date": "27/07/2024",
@@ -3399,7 +3399,7 @@
                   "lap": 3,
                   "pilot": "Emma KIMILÄINEN",
                   "time": "1:36.351",
-                  "kph": 65.0
+                  "kph": 65
                 },
                 "results": [],
                 "date": "28/07/2024",
@@ -3736,7 +3736,7 @@
                   "lap": 5,
                   "pilot": "Oban DUNCAN",
                   "time": "1:19.690",
-                  "kph": 66.0
+                  "kph": 66
                 },
                 "results": [],
                 "date": "24/08/2024",
@@ -4430,7 +4430,7 @@
                   "lap": 6,
                   "pilot": "Tom CHIAPPE",
                   "time": "1:09.279",
-                  "kph": 76.0
+                  "kph": 76
                 },
                 "results": [],
                 "date": "25/01/2025",
@@ -4502,7 +4502,7 @@
                   "lap": 1,
                   "pilot": "Rusty WYATT",
                   "time": "1:05.870",
-                  "kph": 80.0
+                  "kph": 80
                 },
                 "results": [],
                 "date": "24/01/2025",
@@ -4530,7 +4530,7 @@
                   "lap": 2,
                   "pilot": "Oban DUNCAN",
                   "time": "1:08.394",
-                  "kph": 77.0
+                  "kph": 77
                 },
                 "results": [],
                 "date": "24/01/2025",
@@ -4622,7 +4622,7 @@
                   "lap": 3,
                   "pilot": "Oban DUNCAN",
                   "time": "1:10.266",
-                  "kph": 75.0
+                  "kph": 75
                 },
                 "results": [],
                 "date": "25/01/2025",
@@ -4942,7 +4942,7 @@
                   "lap": 4,
                   "pilot": "John PEETERS",
                   "time": "1:09.301",
-                  "kph": 76.0
+                  "kph": 76
                 },
                 "results": [],
                 "date": "24/01/2025",
@@ -4970,7 +4970,7 @@
                   "lap": 11,
                   "pilot": "Dani CLOS",
                   "time": "1:06.705",
-                  "kph": 79.0
+                  "kph": 79
                 },
                 "results": [],
                 "date": "24/01/2025",
@@ -5327,7 +5327,7 @@
                   "lap": 11,
                   "pilot": "Marit STRØMØY",
                   "time": "1:11.903",
-                  "kph": 70.0
+                  "kph": 70
                 },
                 "results": [],
                 "date": "21/02/2025",
@@ -5951,7 +5951,7 @@
                   "lap": 5,
                   "pilot": "Dani CLOS",
                   "time": "1:12.484",
-                  "kph": 73.0
+                  "kph": 73
                 },
                 "results": [],
                 "date": "13/06/2025",
@@ -6623,7 +6623,7 @@
                   "lap": 2,
                   "pilot": "Lucas ORDOÑEZ",
                   "time": "1:08.860",
-                  "kph": 78.0
+                  "kph": 78
                 },
                 "results": [],
                 "date": "27/06/2025",
@@ -6882,7 +6882,7 @@
                   "lap": 3,
                   "pilot": "Tom CHIAPPE",
                   "time": "1:05.507",
-                  "kph": 82.0
+                  "kph": 82
                 },
                 "results": [],
                 "date": "27/06/2025",
@@ -7216,7 +7216,7 @@
                   "lap": 5,
                   "pilot": "John PEETERS",
                   "time": "1:26.107",
-                  "kph": 57.0
+                  "kph": 57
                 },
                 "results": [],
                 "date": "18/07/2025",
@@ -7272,7 +7272,7 @@
                   "lap": 4,
                   "pilot": "John PEETERS",
                   "time": "1:32.571",
-                  "kph": 53.0
+                  "kph": 53
                 },
                 "results": [],
                 "date": "19/07/2025",
@@ -7795,7 +7795,7 @@
                   "lap": 5,
                   "pilot": "Tom CHIAPPE",
                   "time": "1:04.324",
-                  "kph": 68.0
+                  "kph": 68
                 },
                 "results": [],
                 "date": "04/10/2025",
@@ -7864,7 +7864,7 @@
                   "lap": 3,
                   "pilot": "John PEETERS",
                   "time": "1:08.346",
-                  "kph": 64.0
+                  "kph": 64
                 },
                 "results": [],
                 "date": "05/10/2025",
@@ -7941,7 +7941,7 @@
                   "lap": 3,
                   "pilot": "Emma KIMILÄINEN",
                   "time": "1:07.267",
-                  "kph": 65.0
+                  "kph": 65
                 },
                 "results": [],
                 "date": "04/10/2025",
@@ -8462,7 +8462,7 @@
                   "lap": 4,
                   "pilot": "Tom CHIAPPE",
                   "time": "1:05.051",
-                  "kph": 67.0
+                  "kph": 67
                 },
                 "results": [],
                 "date": "07/11/2025",
@@ -8831,7 +8831,7 @@
                   "lap": 2,
                   "pilot": "Patricia PITA",
                   "time": "1:11.479",
-                  "kph": 61.0
+                  "kph": 61
                 },
                 "results": [],
                 "date": "08/11/2025",
@@ -9209,7 +9209,7 @@
                         "sector1": 18.809,
                         "sector2": 27.691,
                         "sector3": 27.546,
-                        "kph": 74.0,
+                        "kph": 74,
                         "elapsed": "31:01.754"
                       },
                       {
@@ -9251,7 +9251,7 @@
                         "sector1": 18.205,
                         "sector2": 29.209,
                         "sector3": 27.66,
-                        "kph": 73.0,
+                        "kph": 73,
                         "elapsed": "17:53.283"
                       },
                       {
@@ -9405,7 +9405,7 @@
                         "sector1": 15.716,
                         "sector2": 26.267,
                         "sector3": 24.848,
-                        "kph": 82.0,
+                        "kph": 82,
                         "elapsed": "27:39.064"
                       },
                       {
@@ -9416,7 +9416,7 @@
                         "sector1": 18.795,
                         "sector2": 21.04,
                         "sector3": 35.165,
-                        "kph": 73.0,
+                        "kph": 73,
                         "elapsed": "28:54.064"
                       },
                       {
@@ -9703,7 +9703,7 @@
                         "sector1": 19.855,
                         "sector2": 22.085,
                         "sector3": 31.111,
-                        "kph": 75.0,
+                        "kph": 75,
                         "elapsed": "8:23.773"
                       }
                     ]
@@ -9855,7 +9855,7 @@
                         "sector1": 16.912,
                         "sector2": 30.172,
                         "sector3": 22.289,
-                        "kph": 79.0,
+                        "kph": 79,
                         "elapsed": "17:35.108"
                       },
                       {
@@ -9954,7 +9954,7 @@
                         "sector1": 17.443,
                         "sector2": 29.742,
                         "sector3": 26.841,
-                        "kph": 74.0,
+                        "kph": 74,
                         "elapsed": "29:54.277"
                       },
                       {
@@ -9988,7 +9988,7 @@
                         "sector1": 17.175,
                         "sector2": 30.303,
                         "sector3": 22.726,
-                        "kph": 78.0,
+                        "kph": 78,
                         "elapsed": "3:09.606"
                       },
                       {
@@ -10032,7 +10032,7 @@
                         "sector1": 17.859,
                         "sector2": 29.698,
                         "sector3": 24.507,
-                        "kph": 76.0,
+                        "kph": 76,
                         "elapsed": "14:34.267"
                       },
                       {
@@ -10121,7 +10121,7 @@
                         "sector1": 19.347,
                         "sector2": 32.864,
                         "sector3": 29.479,
-                        "kph": 67.0,
+                        "kph": 67,
                         "elapsed": "11:15.722"
                       },
                       {
@@ -10252,7 +10252,7 @@
                         "sector1": 14.995,
                         "sector2": 28.147,
                         "sector3": 24.483,
-                        "kph": 81.0,
+                        "kph": 81,
                         "elapsed": "3:26.781"
                       },
                       {
@@ -10565,7 +10565,7 @@
                         "sector1": 14.929,
                         "sector2": 16.983,
                         "sector3": 24.548,
-                        "kph": 97.0,
+                        "kph": 97,
                         "elapsed": "20:37.466"
                       },
                       {
@@ -10807,7 +10807,7 @@
                         "sector1": 16.453,
                         "sector2": 16.886,
                         "sector3": 34.317,
-                        "kph": 81.0,
+                        "kph": 81,
                         "elapsed": "30:00.340"
                       }
                     ]
@@ -11037,7 +11037,7 @@
                         "sector1": 17.082,
                         "sector2": 28.971,
                         "sector3": 22.377,
-                        "kph": 80.0,
+                        "kph": 80,
                         "elapsed": "4:34.774"
                       },
                       {
@@ -11349,7 +11349,7 @@
                         "sector1": 17.536,
                         "sector2": 29.3,
                         "sector3": 23.392,
-                        "kph": 78.0,
+                        "kph": 78,
                         "elapsed": "5:08.555"
                       },
                       {
@@ -11442,7 +11442,7 @@
                     "best_lap": {
                       "lap": 4,
                       "time": "1:08.430",
-                      "kph": 80.0
+                      "kph": 80
                     }
                   },
                   {
@@ -11459,7 +11459,7 @@
                     "best_lap": {
                       "lap": 4,
                       "time": "1:10.228",
-                      "kph": 78.0
+                      "kph": 78
                     }
                   },
                   {
@@ -11488,7 +11488,38 @@
                 "race_round": "R01",
                 "location": "Jeddah",
                 "session": "Race 1 Group A (6 Laps, 9,1 km.)",
-                "grid": [],
+                "grid": [
+                  {
+                    "pos": 1,
+                    "team": "Team Brady",
+                    "pilot": "Sam COLEMAN",
+                    "no": "12"
+                  },
+                  {
+                    "pos": 2,
+                    "team": "Westbrook Racing",
+                    "pilot": "Lucas ORDOÑEZ",
+                    "no": "88"
+                  },
+                  {
+                    "pos": 3,
+                    "team": "Team Sierra Racing Club",
+                    "pilot": "Erik STARK",
+                    "no": "06"
+                  },
+                  {
+                    "pos": 4,
+                    "team": "Team Monaco",
+                    "pilot": "Oban DUNCAN",
+                    "no": "98"
+                  },
+                  {
+                    "pos": 5,
+                    "team": "Team Miami",
+                    "pilot": "Patricia PITA",
+                    "no": "16"
+                  }
+                ],
                 "source_file": "UIM E1 World Championship/Race 1 Group A/Grid_Race 1 Group A.PDF.pdf"
               }
             ],
@@ -11681,7 +11712,7 @@
                         "sector1": 16.25,
                         "sector2": 29.691,
                         "sector3": 22.534,
-                        "kph": 80.0,
+                        "kph": 80,
                         "elapsed": "14:25.048"
                       },
                       {
@@ -11737,7 +11768,7 @@
                         "sector1": 15.782,
                         "sector2": 28.617,
                         "sector3": 22.409,
-                        "kph": 82.0,
+                        "kph": 82,
                         "elapsed": "3:20.926"
                       },
                       {
@@ -11814,7 +11845,7 @@
                         "sector1": 16.214,
                         "sector2": 27.708,
                         "sector3": 21.304,
-                        "kph": 84.0,
+                        "kph": 84,
                         "elapsed": "21:40.464"
                       },
                       {
@@ -11859,7 +11890,7 @@
                         "sector1": 15.88,
                         "sector2": 28.541,
                         "sector3": 22.333,
-                        "kph": 82.0,
+                        "kph": 82,
                         "elapsed": "13:13.188"
                       },
                       {
@@ -11903,7 +11934,7 @@
                         "sector1": 15.463,
                         "sector2": 27.411,
                         "sector3": 20.829,
-                        "kph": 86.0,
+                        "kph": 86,
                         "elapsed": "24:32.064"
                       },
                       {
@@ -11947,7 +11978,7 @@
                         "sector1": 19.443,
                         "sector2": 23.007,
                         "sector3": 29.66,
-                        "kph": 76.0,
+                        "kph": 76,
                         "elapsed": "30:50.647"
                       }
                     ]
@@ -12065,7 +12096,7 @@
                         "sector1": 17.234,
                         "sector2": 27.655,
                         "sector3": 26.236,
-                        "kph": 77.0,
+                        "kph": 77,
                         "elapsed": "5:21.601"
                       },
                       {
@@ -12217,7 +12248,7 @@
                         "sector1": 18.841,
                         "sector2": 27.599,
                         "sector3": 24.736,
-                        "kph": 77.0,
+                        "kph": 77,
                         "elapsed": "18:56.554"
                       },
                       {
@@ -12239,7 +12270,7 @@
                         "sector1": 16.579,
                         "sector2": 28.365,
                         "sector3": 26.182,
-                        "kph": 77.0,
+                        "kph": 77,
                         "elapsed": "9:49.248"
                       }
                     ]
@@ -12360,7 +12391,7 @@
                         "sector1": 15.841,
                         "sector2": 26.295,
                         "sector3": 22.271,
-                        "kph": 85.0,
+                        "kph": 85,
                         "elapsed": "30:34.406"
                       }
                     ]
@@ -12394,7 +12425,7 @@
                         "sector1": 16.796,
                         "sector2": 27.476,
                         "sector3": 23.348,
-                        "kph": 81.0,
+                        "kph": 81,
                         "elapsed": "8:19.170"
                       },
                       {
@@ -12547,7 +12578,7 @@
                   "lap": 9,
                   "pilot": "Sam COLEMAN",
                   "time": "1:04.407",
-                  "kph": 85.0
+                  "kph": 85
                 },
                 "results": [],
                 "date": "21/01/2026",
@@ -12790,7 +12821,7 @@
                         "sector1": 17.635,
                         "sector2": 40.879,
                         "sector3": 23.234,
-                        "kph": 67.0,
+                        "kph": 67,
                         "elapsed": "6:50.291"
                       }
                     ]
@@ -12968,7 +12999,38 @@
                 "race_round": "R01",
                 "location": "Jeddah",
                 "session": "Race 4 Group B (6 Laps, 9,1 km.)",
-                "grid": [],
+                "grid": [
+                  {
+                    "pos": 1,
+                    "team": "Team Rafa",
+                    "pilot": "Tom CHIAPPE",
+                    "no": "09"
+                  },
+                  {
+                    "pos": 2,
+                    "team": "Aoki Racing",
+                    "pilot": "Dani CLOS",
+                    "no": "77"
+                  },
+                  {
+                    "pos": 3,
+                    "team": "Team Blue Rising",
+                    "pilot": "Jasmiin YPRAUS",
+                    "no": "05"
+                  },
+                  {
+                    "pos": 4,
+                    "team": "Team Drogba",
+                    "pilot": "Ieva MILLERE HAGIN",
+                    "no": "11"
+                  },
+                  {
+                    "pos": 5,
+                    "team": "Team AlUla",
+                    "pilot": "Rusty WYATT",
+                    "no": "23"
+                  }
+                ],
                 "source_file": "UIM E1 World Championship/Race 4 Group B/Grid_Race 4 Group B.PDF.pdf"
               }
             ],
@@ -13063,7 +13125,7 @@
                         "sector1": 17.403,
                         "sector2": 29.912,
                         "sector3": 24.757,
-                        "kph": 76.0,
+                        "kph": 76,
                         "elapsed": "16:59.019"
                       },
                       {
@@ -13119,7 +13181,7 @@
                         "sector1": 19.988,
                         "sector2": 31.336,
                         "sector3": 30.46,
-                        "kph": 67.0,
+                        "kph": 67,
                         "elapsed": "10:28.451"
                       },
                       {
@@ -13286,7 +13348,7 @@
                         "sector1": 18.695,
                         "sector2": 30.58,
                         "sector3": 23.772,
-                        "kph": 75.0,
+                        "kph": 75,
                         "elapsed": "12:27.157"
                       },
                       {
@@ -13308,7 +13370,7 @@
                         "sector1": 18.527,
                         "sector2": 31.417,
                         "sector3": 29.424,
-                        "kph": 69.0,
+                        "kph": 69,
                         "elapsed": "14:57.755"
                       },
                       {
@@ -13493,7 +13555,7 @@
                         "sector1": 18.533,
                         "sector2": 22.213,
                         "sector3": 27.677,
-                        "kph": 80.0,
+                        "kph": 80,
                         "elapsed": "12:05.568"
                       },
                       {
@@ -13537,7 +13599,7 @@
                         "sector1": 17.019,
                         "sector2": 30.104,
                         "sector3": 24.028,
-                        "kph": 77.0,
+                        "kph": 77,
                         "elapsed": "16:49.762"
                       },
                       {
@@ -13792,7 +13854,7 @@
                         "sector1": 16.717,
                         "sector2": 29.182,
                         "sector3": 24.333,
-                        "kph": 78.0,
+                        "kph": 78,
                         "elapsed": "15:04.485"
                       },
                       {
@@ -14174,7 +14236,7 @@
                         "sector1": 18.569,
                         "sector2": 22.419,
                         "sector3": 44.581,
-                        "kph": 64.0,
+                        "kph": 64,
                         "elapsed": "18:06.588"
                       },
                       {
@@ -14229,7 +14291,7 @@
                         "sector1": 15.916,
                         "sector2": 34.525,
                         "sector3": 40.78,
-                        "kph": 60.0,
+                        "kph": 60,
                         "elapsed": "21:56.658"
                       },
                       {
@@ -14251,7 +14313,7 @@
                         "sector1": 15.609,
                         "sector2": 25.222,
                         "sector3": 22.128,
-                        "kph": 87.0,
+                        "kph": 87,
                         "elapsed": "22:59.617"
                       },
                       {
@@ -14550,7 +14612,7 @@
                         "sector1": 16.778,
                         "sector2": 27.875,
                         "sector3": 23.774,
-                        "kph": 80.0,
+                        "kph": 80,
                         "elapsed": "9:09.592"
                       },
                       {
@@ -14779,7 +14841,7 @@
                         "sector1": 12.771,
                         "sector2": 41.2,
                         "sector3": 26.564,
-                        "kph": 68.0,
+                        "kph": 68,
                         "elapsed": "1:20.535"
                       },
                       {
@@ -15068,7 +15130,7 @@
                         "sector1": 16.616,
                         "sector2": 40.567,
                         "sector3": 22.164,
-                        "kph": 69.0,
+                        "kph": 69,
                         "elapsed": "6:52.843"
                       }
                     ]
@@ -15209,7 +15271,7 @@
                     "laps": 6,
                     "total_time": "7:36.308",
                     "gap": "+43.465",
-                    "kph": 72.0,
+                    "kph": 72,
                     "best_lap": {
                       "lap": 6,
                       "time": "1:13.885",
@@ -15225,7 +15287,44 @@
                 "race_round": "R01",
                 "location": "Jeddah",
                 "session": "Final 2 (6 Laps, 9,1 km.)",
-                "grid": [],
+                "grid": [
+                  {
+                    "pos": 1,
+                    "team": "Aoki Racing",
+                    "pilot": "Sara MISIR",
+                    "no": "77"
+                  },
+                  {
+                    "pos": 2,
+                    "team": "Team Sierra",
+                    "pilot": "Erik STARK",
+                    "no": "06"
+                  },
+                  {
+                    "pos": 3,
+                    "team": "Team AlUla",
+                    "pilot": "Rusty WYATT",
+                    "no": "23"
+                  },
+                  {
+                    "pos": 4,
+                    "team": "Westbrook Racing",
+                    "pilot": "Lucas ORDOÑEZ",
+                    "no": "88"
+                  },
+                  {
+                    "pos": 5,
+                    "team": "Team Brady",
+                    "pilot": "Emma KIMILÄINEN",
+                    "no": "12"
+                  },
+                  {
+                    "pos": 6,
+                    "team": "Team Miami",
+                    "pilot": "Timmy HANSEN",
+                    "no": "16"
+                  }
+                ],
                 "source_file": "UIM E1 World Championship/Final 2/Grid_Final 2.PDF.pdf"
               }
             ],
@@ -15375,7 +15474,7 @@
                         "sector1": 17.219,
                         "sector2": 29.823,
                         "sector3": 25.049,
-                        "kph": 76.0,
+                        "kph": 76,
                         "elapsed": "23:21.580"
                       },
                       {
@@ -15420,7 +15519,7 @@
                         "sector1": 17.951,
                         "sector2": 30.193,
                         "sector3": 33.556,
-                        "kph": 67.0,
+                        "kph": 67,
                         "elapsed": "5:44.186"
                       },
                       {
@@ -15608,7 +15707,7 @@
                         "sector1": 19.397,
                         "sector2": 21.841,
                         "sector3": 39.326,
-                        "kph": 68.0,
+                        "kph": 68,
                         "elapsed": "18:31.957"
                       },
                       {
@@ -15693,7 +15792,7 @@
                         "sector1": 18.552,
                         "sector2": 30.289,
                         "sector3": 22.272,
-                        "kph": 77.0,
+                        "kph": 77,
                         "elapsed": "20:19.150"
                       },
                       {
@@ -15748,7 +15847,7 @@
                         "sector1": 16.223,
                         "sector2": 19.67,
                         "sector3": 25.66,
-                        "kph": 89.0,
+                        "kph": 89,
                         "elapsed": "13:34.318"
                       },
                       {
@@ -15815,7 +15914,7 @@
                         "sector1": 15.579,
                         "sector2": 31.844,
                         "sector3": 24.633,
-                        "kph": 76.0,
+                        "kph": 76,
                         "elapsed": "10:33.286"
                       },
                       {
@@ -15826,7 +15925,7 @@
                         "sector1": 19.067,
                         "sector2": 23.097,
                         "sector3": 28.012,
-                        "kph": 78.0,
+                        "kph": 78,
                         "elapsed": "11:43.462"
                       },
                       {
@@ -16159,7 +16258,7 @@
                         "sector1": 15.95,
                         "sector2": 29.471,
                         "sector3": 22.202,
-                        "kph": 81.0,
+                        "kph": 81,
                         "elapsed": "1:37.818"
                       },
                       {
@@ -16181,7 +16280,7 @@
                         "sector1": 15.875,
                         "sector2": 29.747,
                         "sector3": 22.017,
-                        "kph": 81.0,
+                        "kph": 81,
                         "elapsed": "11:11.409"
                       },
                       {
@@ -16456,7 +16555,7 @@
                         "sector1": 15.294,
                         "sector2": 19.747,
                         "sector3": 23.222,
-                        "kph": 94.0,
+                        "kph": 94,
                         "elapsed": "2:13.144"
                       },
                       {
@@ -16478,7 +16577,7 @@
                         "sector1": 16.059,
                         "sector2": 28.291,
                         "sector3": 22.454,
-                        "kph": 82.0,
+                        "kph": 82,
                         "elapsed": "4:37.624"
                       },
                       {
@@ -16567,7 +16666,7 @@
                         "sector1": 16.506,
                         "sector2": 29.635,
                         "sector3": 22.348,
-                        "kph": 80.0,
+                        "kph": 80,
                         "elapsed": "6:02.259"
                       },
                       {
@@ -16645,7 +16744,7 @@
                         "sector1": 16.616,
                         "sector2": 31.503,
                         "sector3": 24.924,
-                        "kph": 75.0,
+                        "kph": 75,
                         "elapsed": "6:09.431"
                       },
                       {
@@ -16710,7 +16809,7 @@
                     "best_lap": {
                       "lap": 4,
                       "time": "1:06.804",
-                      "kph": 82.0
+                      "kph": 82
                     }
                   },
                   {
@@ -16773,7 +16872,38 @@
                 "race_round": "R01",
                 "location": "Jeddah",
                 "session": "Race 3 Group A (6 Laps, 9,1 km.)",
-                "grid": [],
+                "grid": [
+                  {
+                    "pos": 1,
+                    "team": "Westbrook Racing",
+                    "pilot": "Sara PRICE",
+                    "no": "88"
+                  },
+                  {
+                    "pos": 2,
+                    "team": "Team Brady",
+                    "pilot": "Emma KIMILÄINEN",
+                    "no": "12"
+                  },
+                  {
+                    "pos": 3,
+                    "team": "Team Sierra",
+                    "pilot": "Rianna O'MEARA-HUNT",
+                    "no": "06"
+                  },
+                  {
+                    "pos": 4,
+                    "team": "Team Monaco",
+                    "pilot": "Maxime NOCHER",
+                    "no": "98"
+                  },
+                  {
+                    "pos": 5,
+                    "team": "Team Miami",
+                    "pilot": "Timmy HANSEN",
+                    "no": "16"
+                  }
+                ],
                 "source_file": "UIM E1 World Championship/Race 3 Group A/Grid_Race 3 Group A.PDF.pdf"
               }
             ],
@@ -16813,7 +16943,7 @@
                         "sector1": 14.875,
                         "sector2": 30.027,
                         "sector3": 25.325,
-                        "kph": 78.0,
+                        "kph": 78,
                         "elapsed": "11:49.610"
                       },
                       {
@@ -17056,7 +17186,7 @@
                         "sector1": 16.884,
                         "sector2": 44.607,
                         "sector3": 25.394,
-                        "kph": 63.0,
+                        "kph": 63,
                         "elapsed": "1:26.885"
                       },
                       {
@@ -17178,7 +17308,7 @@
                         "sector1": 15.613,
                         "sector2": 30.318,
                         "sector3": 20.835,
-                        "kph": 82.0,
+                        "kph": 82,
                         "elapsed": "5:29.363"
                       },
                       {
@@ -17256,7 +17386,7 @@
                         "sector1": 17.516,
                         "sector2": 39.709,
                         "sector3": 22.153,
-                        "kph": 69.0,
+                        "kph": 69,
                         "elapsed": "5:54.063"
                       },
                       {
@@ -17304,7 +17434,7 @@
                     "best_lap": {
                       "lap": 5,
                       "time": "1:06.766",
-                      "kph": 82.0
+                      "kph": 82
                     }
                   },
                   {
@@ -17317,7 +17447,7 @@
                     "laps": 6,
                     "total_time": "6:50.630",
                     "gap": "+3.257",
-                    "kph": 80.0,
+                    "kph": 80,
                     "best_lap": {
                       "lap": 4,
                       "time": "1:05.534",
@@ -17367,7 +17497,32 @@
                 "race_round": "R01",
                 "location": "Jeddah",
                 "session": "Place Race (6 Laps, 9,1 km.)",
-                "grid": [],
+                "grid": [
+                  {
+                    "pos": 1,
+                    "team": "Team Drogba",
+                    "pilot": "Ieva MILLERE HAGIN",
+                    "no": "11"
+                  },
+                  {
+                    "pos": 2,
+                    "team": "Team Miami",
+                    "pilot": "Timmy HANSEN",
+                    "no": "16"
+                  },
+                  {
+                    "pos": 3,
+                    "team": "Team Monaco",
+                    "pilot": "Oban DUNCAN",
+                    "no": "98"
+                  },
+                  {
+                    "pos": 4,
+                    "team": "Team Blue Rising",
+                    "pilot": "John PEETERS",
+                    "no": "05"
+                  }
+                ],
                 "source_file": "UIM E1 World Championship/Place Race/Grid_Place Race.PDF.pdf"
               }
             ],
@@ -17490,9 +17645,9 @@
                         "pilot_pos": 1,
                         "time": "1:12.075",
                         "sector1": 18.97,
-                        "sector2": 31.0,
+                        "sector2": 31,
                         "sector3": 22.105,
-                        "kph": 76.0,
+                        "kph": 76,
                         "elapsed": "31:05.233"
                       },
                       {
@@ -17732,7 +17887,7 @@
                         "sector1": 16.611,
                         "sector2": 20.477,
                         "sector3": 21.821,
-                        "kph": 93.0,
+                        "kph": 93,
                         "elapsed": "5:41.498"
                       },
                       {
@@ -17820,7 +17975,7 @@
                         "sector1": 18.247,
                         "sector2": 32.2,
                         "sector3": 22.593,
-                        "kph": 75.0,
+                        "kph": 75,
                         "elapsed": "18:08.900"
                       },
                       {
@@ -17831,7 +17986,7 @@
                         "sector1": 18.234,
                         "sector2": 28.933,
                         "sector3": 20.465,
-                        "kph": 81.0,
+                        "kph": 81,
                         "elapsed": "24:10.813"
                       },
                       {
@@ -17853,7 +18008,7 @@
                         "sector1": 18.411,
                         "sector2": 30.138,
                         "sector3": 24.449,
-                        "kph": 75.0,
+                        "kph": 75,
                         "elapsed": "26:45.491"
                       }
                     ]
@@ -18178,7 +18333,7 @@
                         "sector1": 18.899,
                         "sector2": 20.247,
                         "sector3": 30.15,
-                        "kph": 79.0,
+                        "kph": 79,
                         "elapsed": "19:30.367"
                       },
                       {
@@ -18266,7 +18421,7 @@
                         "sector1": 14.85,
                         "sector2": 27.293,
                         "sector3": 24.688,
-                        "kph": 82.0,
+                        "kph": 82,
                         "elapsed": "11:23.445"
                       },
                       {
@@ -18377,7 +18532,7 @@
                         "sector1": 18.071,
                         "sector2": 20.546,
                         "sector3": 27.407,
-                        "kph": 83.0,
+                        "kph": 83,
                         "elapsed": "12:57.875"
                       },
                       {
@@ -18421,7 +18576,7 @@
                         "sector1": 17.639,
                         "sector2": 30.793,
                         "sector3": 25.629,
-                        "kph": 74.0,
+                        "kph": 74,
                         "elapsed": "17:51.036"
                       },
                       {
@@ -18561,7 +18716,7 @@
                         "sector1": 13.497,
                         "sector2": 40.086,
                         "sector3": 21.457,
-                        "kph": 73.0,
+                        "kph": 73,
                         "elapsed": "1:15.040"
                       },
                       {
@@ -18581,7 +18736,7 @@
                         "pilot_pos": 2,
                         "time": "1:07.273",
                         "sector1": 15.503,
-                        "sector2": 30.0,
+                        "sector2": 30,
                         "sector3": 21.77,
                         "kph": 81.4,
                         "elapsed": "3:16.602"
@@ -18661,7 +18816,7 @@
                         "sector1": 18.201,
                         "sector2": 38.845,
                         "sector3": 22.293,
-                        "kph": 69.0,
+                        "kph": 69,
                         "elapsed": "3:49.172"
                       },
                       {
@@ -18672,7 +18827,7 @@
                         "sector1": 18.356,
                         "sector2": 32.365,
                         "sector3": 22.273,
-                        "kph": 75.0,
+                        "kph": 75,
                         "elapsed": "5:02.166"
                       },
                       {
@@ -18917,7 +19072,7 @@
                         "sector1": 17.259,
                         "sector2": 29.707,
                         "sector3": 23.278,
-                        "kph": 78.0,
+                        "kph": 78,
                         "elapsed": "6:02.887"
                       },
                       {
@@ -19005,7 +19160,7 @@
                     "best_lap": {
                       "lap": 4,
                       "time": "1:08.499",
-                      "kph": 80.0
+                      "kph": 80
                     }
                   },
                   {
@@ -19039,7 +19194,7 @@
                     "best_lap": {
                       "lap": 5,
                       "time": "1:10.244",
-                      "kph": 78.0
+                      "kph": 78
                     }
                   },
                   {
@@ -19085,7 +19240,44 @@
                 "race_round": "R01",
                 "location": "Jeddah",
                 "session": "Race Off (6 Laps, 9,1 km.)",
-                "grid": [],
+                "grid": [
+                  {
+                    "pos": 1,
+                    "team": "Team Rafa",
+                    "pilot": "Cris LAZARRAGA",
+                    "no": "09"
+                  },
+                  {
+                    "pos": 2,
+                    "team": "Team Miami",
+                    "pilot": "Patricia PITA",
+                    "no": "16"
+                  },
+                  {
+                    "pos": 3,
+                    "team": "Aoki Racing",
+                    "pilot": "Sara MISIR",
+                    "no": "77"
+                  },
+                  {
+                    "pos": 4,
+                    "team": "Westbrook Racing",
+                    "pilot": "Lucas ORDOÑEZ",
+                    "no": "88"
+                  },
+                  {
+                    "pos": 5,
+                    "team": "Team Sierra",
+                    "pilot": "Erik STARK",
+                    "no": "06"
+                  },
+                  {
+                    "pos": 6,
+                    "team": "Team Drogba",
+                    "pilot": "Micah James WILKINSON",
+                    "no": "11"
+                  }
+                ],
                 "source_file": "UIM E1 World Championship/Race Off/Grid_Race Off.PDF.pdf"
               }
             ],
@@ -19254,7 +19446,7 @@
                         "sector1": 17.05,
                         "sector2": 28.558,
                         "sector3": 21.985,
-                        "kph": 81.0,
+                        "kph": 81,
                         "elapsed": "10:17.153"
                       },
                       {
@@ -19309,7 +19501,7 @@
                         "sector1": 16.458,
                         "sector2": 28.699,
                         "sector3": 22.483,
-                        "kph": 81.0,
+                        "kph": 81,
                         "elapsed": "23:45.615"
                       }
                     ]
@@ -19788,7 +19980,7 @@
                         "sector1": 17.199,
                         "sector2": 28.099,
                         "sector3": 32.905,
-                        "kph": 70.0,
+                        "kph": 70,
                         "elapsed": "28:33.647"
                       },
                       {
@@ -19843,7 +20035,7 @@
                         "sector1": 14.658,
                         "sector2": 27.467,
                         "sector3": 23.099,
-                        "kph": 84.0,
+                        "kph": 84,
                         "elapsed": "8:59.859"
                       },
                       {
@@ -19998,7 +20190,7 @@
                         "sector1": 15.729,
                         "sector2": 28.484,
                         "sector3": 25.136,
-                        "kph": 79.0,
+                        "kph": 79,
                         "elapsed": "19:58.990"
                       },
                       {
@@ -20254,7 +20446,7 @@
                         "sector1": 15.509,
                         "sector2": 29.855,
                         "sector3": 23.969,
-                        "kph": 79.0,
+                        "kph": 79,
                         "elapsed": "17:18.916"
                       },
                       {
@@ -20532,7 +20724,7 @@
                         "sector1": 15.905,
                         "sector2": 28.881,
                         "sector3": 25.418,
-                        "kph": 78.0,
+                        "kph": 78,
                         "elapsed": "15:19.516"
                       },
                       {
@@ -20543,7 +20735,7 @@
                         "sector1": 19.684,
                         "sector2": 27.057,
                         "sector3": 23.464,
-                        "kph": 78.0,
+                        "kph": 78,
                         "elapsed": "16:29.721"
                       },
                       {
@@ -20671,7 +20863,7 @@
                         "sector1": 19.979,
                         "sector2": 22.179,
                         "sector3": 42.155,
-                        "kph": 65.0,
+                        "kph": 65,
                         "elapsed": "18:51.428"
                       },
                       {
@@ -20716,7 +20908,7 @@
                         "sector1": 15.673,
                         "sector2": 28.114,
                         "sector3": 22.179,
-                        "kph": 83.0,
+                        "kph": 83,
                         "elapsed": "14:34.635"
                       },
                       {
@@ -20905,7 +21097,7 @@
                         "sector1": 15.918,
                         "sector2": 37.613,
                         "sector3": 25.801,
-                        "kph": 69.0,
+                        "kph": 69,
                         "elapsed": "14:30.929"
                       },
                       {
@@ -20938,7 +21130,7 @@
                         "sector1": 17.017,
                         "sector2": 30.254,
                         "sector3": 23.815,
-                        "kph": 77.0,
+                        "kph": 77,
                         "elapsed": "18:02.285"
                       }
                     ]
@@ -20958,7 +21150,7 @@
                   "lap": 4,
                   "pilot": "Sam COLEMAN",
                   "time": "1:05.966",
-                  "kph": 83.0
+                  "kph": 83
                 },
                 "results": [],
                 "date": "23/01/2026",
@@ -21003,7 +21195,7 @@
                         "sector1": 16.553,
                         "sector2": 30.944,
                         "sector3": 23.649,
-                        "kph": 77.0,
+                        "kph": 77,
                         "elapsed": "3:09.929"
                       },
                       {
@@ -21025,7 +21217,7 @@
                         "sector1": 15.6,
                         "sector2": 30.038,
                         "sector3": 23.698,
-                        "kph": 79.0,
+                        "kph": 79,
                         "elapsed": "19:42.911"
                       }
                     ]
@@ -21070,7 +21262,7 @@
                         "sector1": 15.089,
                         "sector2": 29.677,
                         "sector3": 22.818,
-                        "kph": 81.0,
+                        "kph": 81,
                         "elapsed": "21:02.012"
                       }
                     ]
@@ -21093,7 +21285,7 @@
                         "sector1": 16.876,
                         "sector2": 31.464,
                         "sector3": 23.773,
-                        "kph": 76.0,
+                        "kph": 76,
                         "elapsed": "11:53.121"
                       },
                       {
@@ -21149,7 +21341,7 @@
                         "sector1": 16.393,
                         "sector2": 30.167,
                         "sector3": 22.808,
-                        "kph": 79.0,
+                        "kph": 79,
                         "elapsed": "8:29.791"
                       },
                       {
@@ -21180,7 +21372,7 @@
                   "lap": 6,
                   "pilot": "Micah James WILKINSON",
                   "time": "1:07.584",
-                  "kph": 81.0
+                  "kph": 81
                 },
                 "results": [],
                 "date": "23/01/2026",
@@ -21226,7 +21418,7 @@
                         "sector1": 16.573,
                         "sector2": 26.491,
                         "sector3": 25.423,
-                        "kph": 80.0,
+                        "kph": 80,
                         "elapsed": "7:26.466"
                       },
                       {
@@ -21303,7 +21495,7 @@
                         "sector1": 16.069,
                         "sector2": 26.579,
                         "sector3": 24.972,
-                        "kph": 81.0,
+                        "kph": 81,
                         "elapsed": "12:05.246"
                       },
                       {
@@ -21444,7 +21636,7 @@
                         "sector1": 19.556,
                         "sector2": 28.595,
                         "sector3": 24.881,
-                        "kph": 75.0,
+                        "kph": 75,
                         "elapsed": "6:47.673"
                       }
                     ]
@@ -22331,7 +22523,7 @@
                         "sector1": 16.002,
                         "sector2": 26.958,
                         "sector3": 23.804,
-                        "kph": 82.0,
+                        "kph": 82,
                         "elapsed": "12:41.534"
                       },
                       {
@@ -22353,7 +22545,7 @@
                         "sector1": 16.247,
                         "sector2": 26.734,
                         "sector3": 22.257,
-                        "kph": 84.0,
+                        "kph": 84,
                         "elapsed": "15:19.062"
                       },
                       {
@@ -22431,7 +22623,7 @@
                         "sector1": 18.522,
                         "sector2": 21.803,
                         "sector3": 49.526,
-                        "kph": 61.0,
+                        "kph": 61,
                         "elapsed": "20:25.457"
                       },
                       {
@@ -22531,7 +22723,7 @@
                         "sector1": 16.596,
                         "sector2": 27.813,
                         "sector3": 25.841,
-                        "kph": 78.0,
+                        "kph": 78,
                         "elapsed": "12:18.857"
                       },
                       {
@@ -22564,7 +22756,7 @@
                         "sector1": 24.136,
                         "sector2": 27.293,
                         "sector3": 39.824,
-                        "kph": 60.0,
+                        "kph": 60,
                         "elapsed": "20:00.639"
                       },
                       {
@@ -22795,7 +22987,7 @@
                         "sector1": 17.266,
                         "sector2": 29.73,
                         "sector3": 26.986,
-                        "kph": 74.0,
+                        "kph": 74,
                         "elapsed": "26:26.237"
                       }
                     ]
@@ -22885,7 +23077,7 @@
                         "sector1": 15.037,
                         "sector2": 28.392,
                         "sector3": 23.377,
-                        "kph": 82.0,
+                        "kph": 82,
                         "elapsed": "28:35.107"
                       }
                     ]
@@ -22905,7 +23097,7 @@
                   "lap": 6,
                   "pilot": "Lucas ORDOÑEZ",
                   "time": "1:06.806",
-                  "kph": 82.0
+                  "kph": 82
                 },
                 "results": [],
                 "date": "23/01/2026",
@@ -23000,7 +23192,7 @@
                         "sector1": 16.244,
                         "sector2": 26.409,
                         "sector3": 22.54,
-                        "kph": 84.0,
+                        "kph": 84,
                         "elapsed": "20:24.344"
                       },
                       {
@@ -23154,7 +23346,7 @@
                         "sector1": 15.749,
                         "sector2": 38.952,
                         "sector3": 23.539,
-                        "kph": 70.0,
+                        "kph": 70,
                         "elapsed": "16:51.060"
                       },
                       {
@@ -23243,7 +23435,7 @@
                         "sector1": 15.383,
                         "sector2": 26.156,
                         "sector3": 25.219,
-                        "kph": 82.0,
+                        "kph": 82,
                         "elapsed": "9:10.147"
                       },
                       {
@@ -23321,7 +23513,7 @@
                         "sector1": 17.162,
                         "sector2": 28.54,
                         "sector3": 24.536,
-                        "kph": 78.0,
+                        "kph": 78,
                         "elapsed": "5:44.762"
                       },
                       {
@@ -23449,7 +23641,7 @@
                         "sector1": 16.557,
                         "sector2": 42.811,
                         "sector3": 24.888,
-                        "kph": 65.0,
+                        "kph": 65,
                         "elapsed": "1:24.256"
                       },
                       {
@@ -23538,7 +23730,7 @@
                         "sector1": 14.083,
                         "sector2": 17.876,
                         "sector3": 22.252,
-                        "kph": 101.0,
+                        "kph": 101,
                         "elapsed": "2:10.852"
                       },
                       {
@@ -23571,7 +23763,7 @@
                         "sector1": 17.198,
                         "sector2": 39.098,
                         "sector3": 24.256,
-                        "kph": 68.0,
+                        "kph": 68,
                         "elapsed": "6:04.347"
                       },
                       {
@@ -23627,7 +23819,7 @@
                         "sector1": 17.755,
                         "sector2": 31.094,
                         "sector3": 21.406,
-                        "kph": 78.0,
+                        "kph": 78,
                         "elapsed": "3:52.362"
                       },
                       {
@@ -23893,7 +24085,7 @@
                     "best_lap": {
                       "lap": 3,
                       "time": "1:10.255",
-                      "kph": 78.0
+                      "kph": 78
                     }
                   },
                   {
@@ -23973,7 +24165,44 @@
                 "race_round": "R01",
                 "location": "Jeddah",
                 "session": "Final 1 (6 Laps, 9,1 km.)",
-                "grid": [],
+                "grid": [
+                  {
+                    "pos": 1,
+                    "team": "Team Brady",
+                    "pilot": "Sam COLEMAN",
+                    "no": "12"
+                  },
+                  {
+                    "pos": 2,
+                    "team": "Team AlUla",
+                    "pilot": "Nerea MARTÍ",
+                    "no": "23"
+                  },
+                  {
+                    "pos": 3,
+                    "team": "Team Sierra",
+                    "pilot": "Rianna O'MEARA-HUNT",
+                    "no": "06"
+                  },
+                  {
+                    "pos": 4,
+                    "team": "Westbrook Racing",
+                    "pilot": "Sara PRICE",
+                    "no": "88"
+                  },
+                  {
+                    "pos": 5,
+                    "team": "Team Rafa",
+                    "pilot": "Tom CHIAPPE",
+                    "no": "09"
+                  },
+                  {
+                    "pos": 6,
+                    "team": "Aoki Racing",
+                    "pilot": "Dani CLOS",
+                    "no": "77"
+                  }
+                ],
                 "source_file": "UIM E1 World Championship/Final 1/Grid_Final 1.PDF.pdf"
               }
             ],
@@ -24071,7 +24300,7 @@
                         "sector1": 15.845,
                         "sector2": 27.274,
                         "sector3": 20.538,
-                        "kph": 86.0,
+                        "kph": 86,
                         "elapsed": "2:53.658"
                       },
                       {
@@ -24193,7 +24422,7 @@
                         "sector1": 17.225,
                         "sector2": 28.076,
                         "sector3": 21.454,
-                        "kph": 82.0,
+                        "kph": 82,
                         "elapsed": "6:51.272"
                       }
                     ]
@@ -24291,7 +24520,7 @@
                   "lap": 2,
                   "pilot": "John PEETERS",
                   "time": "1:03.657",
-                  "kph": 86.0
+                  "kph": 86
                 },
                 "results": [
                   {
@@ -24308,7 +24537,7 @@
                     "best_lap": {
                       "lap": 6,
                       "time": "1:06.755",
-                      "kph": 82.0
+                      "kph": 82
                     }
                   },
                   {
@@ -24342,7 +24571,7 @@
                     "best_lap": {
                       "lap": 2,
                       "time": "1:03.657",
-                      "kph": 86.0
+                      "kph": 86
                     }
                   }
                 ],
@@ -24354,7 +24583,38 @@
                 "race_round": "R01",
                 "location": "Jeddah",
                 "session": "Race 2 Group B (6 Laps, 9,1 km.)",
-                "grid": [],
+                "grid": [
+                  {
+                    "pos": 1,
+                    "team": "Team Rafa",
+                    "pilot": "Cris LAZARRAGA",
+                    "no": "09"
+                  },
+                  {
+                    "pos": 2,
+                    "team": "Aoki Racing",
+                    "pilot": "Sara MISIR",
+                    "no": "77"
+                  },
+                  {
+                    "pos": 3,
+                    "team": "Team Blue Rising",
+                    "pilot": "John PEETERS",
+                    "no": "05"
+                  },
+                  {
+                    "pos": 4,
+                    "team": "Team Drogba",
+                    "pilot": "Micah James WILKINSON",
+                    "no": "11"
+                  },
+                  {
+                    "pos": 5,
+                    "team": "Team AlUla",
+                    "pilot": "Nerea MARTÍ",
+                    "no": "23"
+                  }
+                ],
                 "source_file": "UIM E1 World Championship/Race 2 Group B/Grid_Race 2 Group B.PDF.pdf"
               }
             ],
@@ -24381,7 +24641,7 @@
                         "pilot_pos": 2,
                         "time": "1:08.285",
                         "sector1": 15.631,
-                        "sector2": 28.0,
+                        "sector2": 28,
                         "sector3": 24.654,
                         "kph": 80.2,
                         "elapsed": "3:46.831"
@@ -24496,7 +24756,7 @@
                         "sector1": 15.029,
                         "sector2": 26.633,
                         "sector3": 25.13,
-                        "kph": 82.0,
+                        "kph": 82,
                         "elapsed": "15:22.535"
                       }
                     ]

@@ -42,9 +42,7 @@ function LoginContent() {
   return (
     <div className="min-h-screen flex items-center justify-center">
       <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-2xl p-10 max-w-md w-full text-center">
-        <div className="w-16 h-16 rounded-full bg-[#0047FF] flex items-center justify-center mx-auto mb-6">
-          <span className="font-display text-white text-xl font-bold">E1</span>
-        </div>
+        <img src="/tbr-logo.svg" alt="TBR" className="w-20 h-20 mx-auto mb-6" />
         <h1 className="font-display text-2xl font-bold tracking-wider mb-2">TBR ANALYTICS HUB</h1>
         <p className="text-[var(--text-secondary)] text-sm mb-8">
           Team Blue Rising &middot; E1 World Championship

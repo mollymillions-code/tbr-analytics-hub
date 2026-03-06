@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 import localFont from "next/font/local";
 import { Inter, JetBrains_Mono, Montserrat, Poppins } from "next/font/google";
@@ -58,6 +59,9 @@ const jetBrainsMono = JetBrains_Mono({
 export const metadata: Metadata = {
   title: "TBR Analytics Hub — Team Blue Rising",
   description: "Race analytics and performance data for Team Blue Rising — E1 World Championship",
+  icons: {
+    icon: "/tbr-logo.svg",
+  },
 };
 
 export default async function RootLayout({
@@ -77,9 +81,7 @@ export default async function RootLayout({
           <header className="sticky top-0 z-50 border-b-2 border-[var(--accent-cyan)] bg-[#0d0d0d]/95 backdrop-blur-md">
             <div className="max-w-[1600px] mx-auto flex items-center justify-between px-5 py-3">
               <Link href="/" prefetch={false} className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-[#0047FF] flex items-center justify-center">
-                  <span className="font-display text-white text-sm font-bold">E1</span>
-                </div>
+                <Image src="/tbr-logo.svg" alt="TBR" width={40} height={40} className="w-10 h-10" priority />
                 <div>
                   <div className="font-display text-sm font-bold tracking-wider text-white">TBR ANALYTICS HUB</div>
                   <div className="text-[10px] text-[var(--text-muted)] tracking-widest uppercase">Team Blue Rising</div>

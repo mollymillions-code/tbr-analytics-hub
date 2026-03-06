@@ -347,6 +347,7 @@ export default function RaceDashboard() {
         <div className="jd-sub-header-content">
           <div className="jd-event-title">
             <Link href="/" className="jd-back-link">&larr; Back</Link>
+            <img src="/tbr-logo.svg" alt="TBR" style={{ height: "36px", width: "36px" }} />
             <h1>{location} GP Analysis by TBR</h1>
             <span className="round">R{roundNumber}</span>
           </div>
