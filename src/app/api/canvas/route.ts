@@ -21,8 +21,8 @@ You receive PRE-COMPUTED, SQL-VERIFIED analytics data. Every number in the data 
 CRITICAL RULES:
 - ONLY use numbers that appear in the VERIFIED COMPUTE RESULTS section below. Do NOT perform arithmetic, calculate averages, derive percentages, or estimate any values yourself.
 - If a specific number is not in the data packet, say "data not available" rather than guessing.
-- You may describe relationships between numbers (e.g., "Team A's avg position of 3.2 is 1.4 places ahead of Team B's 4.6") — but only if both numbers exist in the data.
 - You may quote numbers exactly as they appear (e.g., "avg_position: 3.2" → "an average finish of P3.2").
+- When comparing two numbers, state both values and let the reader see the difference (e.g., "Team A averages P3.2 while Team B averages P4.6") — do NOT compute the difference yourself.
 - NEVER fabricate data. NEVER round or adjust numbers beyond what's in the data.
 - NEVER say "approximately" or "roughly" — the numbers are exact.
 
@@ -94,20 +94,30 @@ export async function POST(request: NextRequest) {
 
     // ── Step 1: Compute verified metrics from SQL ──
     let computedData: string;
+    let hasComputeResults = false;
     try {
       const packet = await computeForQuery(query);
+      hasComputeResults = packet.results.length > 0;
       computedData = formatDataPacket(packet);
     } catch (computeErr) {
       console.error("Compute engine error, falling back to raw data:", computeErr);
-      // Fallback: if compute fails (e.g., no DATABASE_URL), use the old dataSummary
       computedData = dataSummary || "";
     }
 
     // If compute returned nothing useful AND we have dataSummary, include it as supplementary
-    const hasComputeResults = computedData.includes("rows)");
     const supplementary = !hasComputeResults && dataSummary
       ? `\n\n=== RAW DATA (supplementary — use for reference only) ===\n${dataSummary}`
       : "";
+
+    // If we have absolutely no data, return a structured error
+    if (!hasComputeResults && !dataSummary) {
+      return NextResponse.json({
+        title: "Insufficient Data",
+        blocks: [
+          { type: "text", content: "No data available for this query. Please ensure the database has been seeded via POST /api/setup." },
+        ],
+      });
+    }
 
     const userPrompt = `${computedData}${supplementary}
 
@@ -161,7 +171,31 @@ Respond with ONLY valid JSON matching the schema. No markdown fences.`;
     const text =
       geminiResponse.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
 
-    const parsed = JSON.parse(text);
+    if (!text) {
+      console.error("Gemini returned empty response");
+      return NextResponse.json(
+        { error: "LLM returned empty response" },
+        { status: 502 }
+      );
+    }
+
+    let parsed;
+    try {
+      parsed = JSON.parse(text);
+    } catch {
+      console.error("Gemini returned invalid JSON:", text.slice(0, 500));
+      return NextResponse.json(
+        { error: "LLM returned invalid response format" },
+        { status: 502 }
+      );
+    }
+
+    if (!parsed.title || !Array.isArray(parsed.blocks)) {
+      return NextResponse.json(
+        { error: "LLM response missing required fields" },
+        { status: 502 }
+      );
+    }
 
     return NextResponse.json(parsed);
   } catch (error) {
