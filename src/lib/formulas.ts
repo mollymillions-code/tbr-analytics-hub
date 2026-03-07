@@ -25,7 +25,7 @@ export const SEED_FORMULAS: FormulaDefinition[] = [
       SELECT r.team,
         COUNT(*) AS race_count,
         ROUND(AVG(r.pos::numeric), 2) AS avg_position,
-        ROUND(STDDEV(r.pos::numeric), 2) AS position_stddev,
+        COALESCE(ROUND(STDDEV(r.pos::numeric), 2), 0) AS position_stddev,
         MIN(r.pos::int) AS best_finish,
         MAX(r.pos::int) AS worst_finish,
         COUNT(*) FILTER (WHERE r.pos::int = 1) AS wins,
@@ -96,7 +96,7 @@ export const SEED_FORMULAS: FormulaDefinition[] = [
     sql_template: `
       SELECT s.fl_pilot AS pilot,
         COUNT(*) AS fastest_lap_count,
-        MIN(s.fl_time) AS best_time,
+        MIN(s.fl_time) AS best_time_text,
         MAX(s.fl_kph) AS top_kph
       FROM e1_sessions s
       JOIN e1_races rc ON s.race_id = rc.id
@@ -122,7 +122,7 @@ export const SEED_FORMULAS: FormulaDefinition[] = [
         ROUND(AVG(l.lap_time_sec), 3) AS avg_lap_sec,
         ROUND(MIN(l.lap_time_sec), 3) AS best_lap_sec,
         ROUND(MAX(l.lap_time_sec), 3) AS worst_lap_sec,
-        ROUND(STDDEV(l.lap_time_sec), 3) AS lap_consistency,
+        COALESCE(ROUND(STDDEV(l.lap_time_sec), 3), 0) AS lap_consistency,
         ROUND(AVG(l.kph), 1) AS avg_kph,
         ROUND(MAX(l.kph), 1) AS peak_kph
       FROM e1_laps l
@@ -371,13 +371,13 @@ export const SEED_FORMULAS: FormulaDefinition[] = [
         SELECT s.race_id, r.team, r.pilot, MIN(r.pos::int) AS race_pos
         FROM e1_results r
         JOIN e1_sessions s ON r.session_id = s.id
-        WHERE r.pos ~ '^[0-9]+$' AND s.session_type IN ('race','semifinal','final')
+        WHERE r.pos ~ '^[0-9]+$' AND s.session_type IN ('race','semifinal','final','placerace','raceoff')
         GROUP BY s.race_id, r.team, r.pilot
       )
       SELECT rc.season, rc.race, q.team, q.pilot,
         q.qual_pos, r.race_pos, q.qual_pos - r.race_pos AS places_gained
       FROM qual q
-      JOIN race r ON q.race_id = r.race_id AND q.pilot = r.pilot
+      JOIN race r ON q.race_id = r.race_id AND q.pilot = r.pilot AND q.team = r.team
       JOIN e1_races rc ON q.race_id = rc.id
       WHERE ($1::text IS NULL OR LOWER(q.team) LIKE '%' || LOWER($1) || '%')
         AND ($2::text IS NULL OR rc.season = $2)
@@ -462,7 +462,7 @@ export const SEED_FORMULAS: FormulaDefinition[] = [
       SELECT rc.season, rc.race, s.session_name, l.team,
         COUNT(*) AS lap_count,
         ROUND(AVG(l.lap_time_sec), 3) AS avg_lap,
-        ROUND(STDDEV(l.lap_time_sec), 3) AS lap_stddev,
+        COALESCE(ROUND(STDDEV(l.lap_time_sec), 3), 0) AS lap_stddev,
         ROUND(MIN(l.lap_time_sec), 3) AS fastest,
         ROUND(MAX(l.lap_time_sec), 3) AS slowest,
         ROUND(MAX(l.lap_time_sec) - MIN(l.lap_time_sec), 3) AS spread
@@ -471,7 +471,7 @@ export const SEED_FORMULAS: FormulaDefinition[] = [
       JOIN e1_races rc ON s.race_id = rc.id
       WHERE l.lap_time_sec IS NOT NULL AND l.lap_time_sec > 0
         AND s.session_type IN ('race','semifinal','final','placerace','raceoff')
-        AND l.marker IS NULL OR l.marker = '__'
+        AND (l.marker IS NULL OR l.marker = '__')
         AND ($1::text IS NULL OR LOWER(l.team) LIKE '%' || LOWER($1) || '%')
         AND ($2::text IS NULL OR rc.season = $2)
       GROUP BY rc.season, rc.race, s.session_name, l.team

@@ -123,7 +123,12 @@ export async function computeForQuery(query: string): Promise<DataPacket> {
 
   for (const formula of formulas) {
     try {
-      const params = buildParams(formula.param_names as string[], context);
+      const paramNames = formula.param_names as string[];
+
+      // Skip formulas that require params we don't have
+      if (paramNames.includes("team_filter_2") && context.teams.length < 2) continue;
+
+      const params = buildParams(paramNames, context);
       const rows = await sql.query(formula.sql_template as string, params);
 
       if (rows.length > 0) {

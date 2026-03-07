@@ -50,7 +50,7 @@ export async function initAllTables() {
       fl_kph NUMERIC,
       fl_lap INT,
       source_file TEXT,
-      UNIQUE(race_id, session_name, source_file)
+      UNIQUE(race_id, session_name)
     )
   `;
 
@@ -122,6 +122,8 @@ export async function initAllTables() {
   await sql`CREATE INDEX IF NOT EXISTS idx_e1_results_session ON e1_results(session_id)`;
   await sql`CREATE INDEX IF NOT EXISTS idx_e1_laps_session ON e1_laps(session_id)`;
   await sql`CREATE INDEX IF NOT EXISTS idx_e1_laps_team ON e1_laps(team)`;
+  await sql`CREATE INDEX IF NOT EXISTS idx_e1_laps_marker ON e1_laps(marker)`;
+  await sql`CREATE INDEX IF NOT EXISTS idx_e1_sessions_type ON e1_sessions(session_type)`;
   await sql`CREATE INDEX IF NOT EXISTS idx_e1_sessions_race ON e1_sessions(race_id)`;
   await sql`CREATE INDEX IF NOT EXISTS idx_e1_championships_race ON e1_championships(race_id)`;
 }

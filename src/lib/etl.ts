@@ -99,11 +99,18 @@ async function insertClassification(
       ${doc.fastest_lap?.kph ?? null}, ${doc.fastest_lap?.lap ?? null},
       ${doc.source_file || null}
     )
-    ON CONFLICT (race_id, session_name, source_file) DO NOTHING
+    ON CONFLICT (race_id, session_name) DO UPDATE SET
+      laps = COALESCE(EXCLUDED.laps, e1_sessions.laps),
+      distance = COALESCE(EXCLUDED.distance, e1_sessions.distance),
+      wind = COALESCE(EXCLUDED.wind, e1_sessions.wind),
+      race_date = COALESCE(EXCLUDED.race_date, e1_sessions.race_date),
+      fl_pilot = COALESCE(EXCLUDED.fl_pilot, e1_sessions.fl_pilot),
+      fl_time = COALESCE(EXCLUDED.fl_time, e1_sessions.fl_time),
+      fl_kph = COALESCE(EXCLUDED.fl_kph, e1_sessions.fl_kph),
+      fl_lap = COALESCE(EXCLUDED.fl_lap, e1_sessions.fl_lap)
     RETURNING id
   `;
 
-  if (sessionRows.length === 0) return;
   const sessionId = sessionRows[0].id;
   counts.sessions++;
 
@@ -140,7 +147,7 @@ async function insertAnalysis(
   let sessionId: number;
   const existing = await sql`
     SELECT id FROM e1_sessions
-    WHERE race_id = ${raceId} AND session_name = ${sessionName} AND source_file = ${doc.source_file || ''}
+    WHERE race_id = ${raceId} AND session_name = ${sessionName}
     LIMIT 1
   `;
 
@@ -150,11 +157,20 @@ async function insertAnalysis(
     const sessionRows = await sql`
       INSERT INTO e1_sessions (race_id, session_name, session_type, source_file)
       VALUES (${raceId}, ${sessionName}, ${sessionType}, ${doc.source_file || null})
-      ON CONFLICT (race_id, session_name, source_file) DO NOTHING
+      ON CONFLICT (race_id, session_name) DO NOTHING
       RETURNING id
     `;
-    if (sessionRows.length === 0) return;
-    sessionId = sessionRows[0].id;
+    if (sessionRows.length === 0) {
+      // Race condition — try to find it again
+      const retry = await sql`
+        SELECT id FROM e1_sessions
+        WHERE race_id = ${raceId} AND session_name = ${sessionName} LIMIT 1
+      `;
+      if (retry.length === 0) return;
+      sessionId = retry[0].id;
+    } else {
+      sessionId = sessionRows[0].id;
+    }
     counts.sessions++;
   }
 

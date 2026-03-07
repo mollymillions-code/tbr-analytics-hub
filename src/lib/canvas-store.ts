@@ -123,7 +123,7 @@ export function loadResult(query: string, result: CanvasResult) {
   notify();
 }
 
-// ─── Saved Reports (server-side via Vercel Blob — shared across all users) ──
+// ─── Saved Reports (server-side via Neon Postgres — shared across all users) ──
 
 export interface SavedReportMeta {
   id: string;
