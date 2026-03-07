@@ -3,7 +3,7 @@ import { computeForQuery, formatDataPacket } from "@/lib/compute";
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 const GEMINI_MODEL = "gemini-3.1-pro-preview";
-const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`;
+const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
 
 // ─── System Prompt: LLM as Narrator, NOT Calculator ─────────────────────
 
@@ -85,9 +85,16 @@ export async function POST(request: NextRequest) {
   try {
     const { query, dataSummary } = await request.json();
 
-    if (!query) {
+    if (!query || typeof query !== "string") {
       return NextResponse.json(
         { error: "Missing query" },
+        { status: 400 }
+      );
+    }
+
+    if (query.length > 500) {
+      return NextResponse.json(
+        { error: "Query too long (max 500 characters)" },
         { status: 400 }
       );
     }
@@ -138,7 +145,10 @@ Respond with ONLY valid JSON matching the schema. No markdown fences.`;
 
     const response = await fetch(GEMINI_URL, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        "x-goog-api-key": GEMINI_API_KEY!,
+      },
       body: JSON.stringify({
         system_instruction: {
           parts: [{ text: SYSTEM_PROMPT }],

@@ -12,7 +12,7 @@ export async function GET() {
   } catch (error) {
     console.error("Setup error:", error);
     return NextResponse.json(
-      { ok: false, error: String(error) },
+      { ok: false, error: "Table creation failed" },
       { status: 500 }
     );
   }
@@ -48,7 +48,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error("Setup/seed error:", error);
     return NextResponse.json(
-      { ok: false, error: String(error) },
+      { ok: false, error: "Database seed failed" },
       { status: 500 }
     );
   }

@@ -36,7 +36,15 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Missing name, query, or result" }, { status: 400 });
     }
 
-    const id = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
+    // Input size limits
+    if (typeof name !== "string" || name.length > 200) {
+      return NextResponse.json({ error: "Name too long" }, { status: 400 });
+    }
+    if (typeof query !== "string" || query.length > 1000) {
+      return NextResponse.json({ error: "Query too long" }, { status: 400 });
+    }
+
+    const id = crypto.randomUUID();
     const sql = getDb();
 
     await sql`
