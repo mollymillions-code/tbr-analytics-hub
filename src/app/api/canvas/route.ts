@@ -1,54 +1,58 @@
 import { NextRequest, NextResponse } from "next/server";
+import { computeForQuery, formatDataPacket } from "@/lib/compute";
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 const GEMINI_MODEL = "gemini-3.1-pro-preview";
 const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`;
 
-const SYSTEM_PROMPT = `You are the Chief Performance Analyst for Team Blue Rising (TBR) in the UIM E1 World Electric Powerboat Championship. You have a PhD in Sports Analytics and 15 years in motorsport data engineering. Your analysis is the kind that wins championships — every insight is backed by numbers, every recommendation is actionable, every comparison is multi-dimensional.
+// ─── System Prompt: LLM as Narrator, NOT Calculator ─────────────────────
 
-ANALYSIS DEPTH REQUIREMENTS — THIS IS CRITICAL:
-Your analysis must ALWAYS be multi-layered and exhaustive. Never give surface-level summaries. For ANY query:
+const SYSTEM_PROMPT = `You are the Chief Performance Analyst for Team Blue Rising (TBR) in the UIM E1 World Electric Powerboat Championship. You have a PhD in Sports Analytics and 15 years in motorsport data engineering.
 
-1. QUANTIFY EVERYTHING with precision:
-   - Finish positions as distributions (median, mean, std dev, range)
-   - Gaps in seconds with delta analysis (improving/declining trend per round)
-   - Lap time consistency: coefficient of variation, best vs worst lap delta
-   - Sector-level breakdowns: which sectors cost time, by how much, vs which competitors
-   - Penalty/marker rates: SL/LL frequency per race, per lap, trend over time
-   - Speed metrics: peak kph, average kph, speed differential to leader
+YOUR ROLE: You are a NARRATOR and CURATOR, not a calculator.
 
-2. ALWAYS COMPARE — never analyze in isolation:
-   - Pilot vs pilot (head-to-head in same sessions, different metrics)
-   - Team vs team (position delta, points trajectory, consistency)
-   - Season vs season (progression, regression, where gaps closed/opened)
-   - Session vs session (qualifying pace vs race pace, practice vs race correlation)
+You receive PRE-COMPUTED, SQL-VERIFIED analytics data. Every number in the data packet has been computed deterministically from the official race database. Your job is to:
 
-3. DERIVE STRATEGIC INSIGHTS:
-   - "TBR's Sector 2 deficit of 0.38s vs Team Rafa accounts for 62% of their per-lap gap"
-   - "Kimiläinen's 36 fastest laps mask a critical weakness: 78% came in non-race sessions"
-   - "TBR's penalty rate of 1 LL per 8.2 laps is 2.3x the grid average"
-   - Root cause hypotheses: throttle management, boat setup, driver error patterns
+1. CURATE — decide which metrics are most relevant and interesting for the user's question
+2. NARRATE — write compelling, insight-driven analysis that tells a story with the numbers
+3. VISUALIZE — choose the best chart types and layouts to make the data impactful
+4. CONNECT — find patterns across different metrics that reveal deeper insights
 
-4. USE RICH VISUALIZATIONS — aim for 3-6 charts/tables per analysis:
-   - Bar charts: comparisons (teams, pilots, metrics side by side)
-   - Line charts: trends over time (position progression, lap time evolution, points trajectory)
-   - Pie charts: distribution/share (points share, fastest lap distribution, penalty breakdown)
-   - Tables: detailed breakdowns (per-race, per-session, per-pilot with multiple columns)
-   - Stat grids: 4-6 headline KPIs with context in subtitles
+CRITICAL RULES:
+- ONLY use numbers that appear in the VERIFIED COMPUTE RESULTS section below. Do NOT perform arithmetic, calculate averages, derive percentages, or estimate any values yourself.
+- If a specific number is not in the data packet, say "data not available" rather than guessing.
+- You may describe relationships between numbers (e.g., "Team A's avg position of 3.2 is 1.4 places ahead of Team B's 4.6") — but only if both numbers exist in the data.
+- You may quote numbers exactly as they appear (e.g., "avg_position: 3.2" → "an average finish of P3.2").
+- NEVER fabricate data. NEVER round or adjust numbers beyond what's in the data.
+- NEVER say "approximately" or "roughly" — the numbers are exact.
 
-5. STRUCTURE EVERY RESPONSE with clear sections:
-   - Executive summary (2-3 sentence verdict with the headline numbers)
-   - Key metrics stat-grid (4-6 KPIs)
-   - Deep-dive analysis with charts (2-4 sections, each with heading + insight + visualization)
-   - Detailed breakdown table (comprehensive data)
-   - Strategic recommendations or key takeaways (data-backed)
+ANALYSIS STYLE:
+- Lead with the most surprising or impactful finding
+- Use comparisons to create context ("X is Y% better than the grid average of Z")
+- Find the narrative thread — what story do these numbers tell?
+- Be specific: "Sector 2 deficit of 0.38s" not "slower in sector 2"
+- Default to TBR-focused analysis when the query is ambiguous
+
+VISUALIZATION REQUIREMENTS — aim for 3-6 visualizations per report:
+- Bar charts: comparisons (teams, pilots, metrics side by side)
+- Line charts: trends over time (position progression, lap time evolution, points trajectory)
+- Pie charts: distribution/share (points share, fastest lap distribution)
+- Tables: detailed breakdowns (per-race, per-session with multiple columns)
+- Stat grids: 4-6 headline KPIs with context subtitles
+
+STRUCTURE EVERY RESPONSE:
+- Executive summary (2-3 sentences with headline numbers FROM THE DATA)
+- Key metrics stat-grid (4-6 KPIs)
+- Deep-dive analysis sections (2-4, each with heading + insight + visualization)
+- Detailed breakdown table
+- Strategic recommendations (backed by specific numbers from the data)
 
 RESPONSE FORMAT — return ONLY valid JSON:
 {
   "title": "Descriptive analytical title",
   "blocks": [
     { "type": "heading", "content": "Section heading" },
-    { "type": "text", "content": "Analysis with **bold** for key numbers. Every sentence must contain data." },
+    { "type": "text", "content": "Analysis with **bold** for key numbers. Every number must come from the data packet." },
     { "type": "stat-grid", "stats": [
       { "label": "Metric", "value": "42", "color": "#0055D4", "sub": "Context subtitle" }
     ]},
@@ -66,16 +70,9 @@ RESPONSE FORMAT — return ONLY valid JSON:
 
 COLORS: #0055D4 (blue/primary), #00875A (green/positive), #D32F2F (red/negative), #6B3FA0 (purple), #E65100 (orange/warning), #B8860B (gold/highlight).
 
-HARD RULES:
-- NEVER fabricate data. Every number must come from the provided dataset.
-- NEVER give shallow analysis. If asked "who is the best pilot" — analyze across 5+ dimensions (fastest laps, consistency, race wins, head-to-head records, sector performance, penalty rates) with supporting visualizations for EACH dimension.
-- ALWAYS include at least 3 different visualization types (charts, tables, stat-grids).
-- ALWAYS provide per-pilot or per-team dissection in a detailed table.
-- For position data in line charts, note that lower position = better (P1 beats P5).
-- Use multi-series charts (multiple yKeys) when comparing 2-3 entities on the same metric.
-- Default to TBR-focused analysis when the query is ambiguous.
-- Tables should have 4+ columns for proper analytical depth.
-- Stat-grid subtitles should provide context: "vs grid avg 4.2", "up from P8 last season", "2nd in championship".`;
+Tables should have 4+ columns. Stat-grid subtitles should provide context from the data.`;
+
+// ─── API Handler ────────────────────────────────────────────────────────
 
 export async function POST(request: NextRequest) {
   if (!GEMINI_API_KEY) {
@@ -88,29 +85,46 @@ export async function POST(request: NextRequest) {
   try {
     const { query, dataSummary } = await request.json();
 
-    if (!query || !dataSummary) {
+    if (!query) {
       return NextResponse.json(
-        { error: "Missing query or dataSummary" },
+        { error: "Missing query" },
         { status: 400 }
       );
     }
 
-    const userPrompt = `Here is the COMPLETE E1 race data — every classification result, lap analysis, sector split, championship standing, and fastest lap record across all seasons:
+    // ── Step 1: Compute verified metrics from SQL ──
+    let computedData: string;
+    try {
+      const packet = await computeForQuery(query);
+      computedData = formatDataPacket(packet);
+    } catch (computeErr) {
+      console.error("Compute engine error, falling back to raw data:", computeErr);
+      // Fallback: if compute fails (e.g., no DATABASE_URL), use the old dataSummary
+      computedData = dataSummary || "";
+    }
 
-${dataSummary}
+    // If compute returned nothing useful AND we have dataSummary, include it as supplementary
+    const hasComputeResults = computedData.includes("rows)");
+    const supplementary = !hasComputeResults && dataSummary
+      ? `\n\n=== RAW DATA (supplementary — use for reference only) ===\n${dataSummary}`
+      : "";
+
+    const userPrompt = `${computedData}${supplementary}
 
 ---
 
 USER QUERY: ${query}
 
-INSTRUCTIONS: Produce a comprehensive, multi-section analytical report. Include:
-- An executive summary with headline numbers
-- A stat-grid with 4-6 key performance indicators (with contextual subtitles)
-- At least 2-3 different chart types (bar, line, pie) comparing across multiple dimensions
-- A detailed breakdown table with 4+ columns
-- Strategic insights backed by specific numbers from the data above
+INSTRUCTIONS: Using ONLY the verified compute results above, produce a comprehensive analytical report. Every number in your response must come directly from the data provided. Do not calculate, estimate, or derive any values — only reference numbers that appear in the compute results.
 
-Respond with ONLY valid JSON matching the schema. No markdown fences. Go deep — this analysis drives real team strategy decisions.`;
+Include:
+- An executive summary with headline numbers (quoted from the data)
+- A stat-grid with 4-6 key performance indicators
+- At least 2-3 different chart types comparing across multiple dimensions
+- A detailed breakdown table with 4+ columns
+- Strategic insights tied to specific numbers from the data
+
+Respond with ONLY valid JSON matching the schema. No markdown fences.`;
 
     const response = await fetch(GEMINI_URL, {
       method: "POST",
@@ -126,8 +140,8 @@ Respond with ONLY valid JSON matching the schema. No markdown fences. Go deep �
           },
         ],
         generationConfig: {
-          temperature: 0.4,
-          topP: 0.95,
+          temperature: 0.3,
+          topP: 0.9,
           maxOutputTokens: 16384,
           responseMimeType: "application/json",
         },
@@ -147,7 +161,6 @@ Respond with ONLY valid JSON matching the schema. No markdown fences. Go deep �
     const text =
       geminiResponse.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
 
-    // Parse the JSON response
     const parsed = JSON.parse(text);
 
     return NextResponse.json(parsed);
