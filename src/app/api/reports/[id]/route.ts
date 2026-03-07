@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { list } from "@vercel/blob";
-
-const REPORTS_PREFIX = "canvas-reports/";
+import { getDb } from "@/lib/db";
 
 // GET /api/reports/[id] — load a single report with full result data
 export async function GET(
@@ -15,16 +13,27 @@ export async function GET(
       return NextResponse.json({ error: "Invalid report ID" }, { status: 400 });
     }
 
-    const { blobs } = await list({ prefix: `${REPORTS_PREFIX}${id}.json` });
+    const sql = getDb();
+    const rows = await sql`
+      SELECT id, name, query, result, saved_by, created_at
+      FROM canvas_reports
+      WHERE id = ${id}
+      LIMIT 1
+    `;
 
-    if (blobs.length === 0) {
+    if (rows.length === 0) {
       return NextResponse.json({ error: "Report not found" }, { status: 404 });
     }
 
-    const res = await fetch(blobs[0].url);
-    const report = await res.json();
-
-    return NextResponse.json(report);
+    const r = rows[0];
+    return NextResponse.json({
+      id: r.id,
+      name: r.name,
+      query: r.query,
+      result: r.result,
+      savedBy: r.saved_by,
+      savedAt: new Date(r.created_at).getTime(),
+    });
   } catch (error) {
     console.error("Failed to load report:", error);
     return NextResponse.json({ error: "Failed to load report" }, { status: 500 });
